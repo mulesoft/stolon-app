@@ -41,7 +41,7 @@ steps:
       - apk add --no-cache make libc6-compat
       # add binaries downloaded in "download binaries" step to path
       - export PATH=$PATH:$(pwd)/bin
-      - export INTERMEDIATE_RUNTIME_VERSION=5.2.18
+      - export INTERMEDIATE_RUNTIME_VERSION=5.2.17
       - make build-app
     volumes:
       - name: dockersock
