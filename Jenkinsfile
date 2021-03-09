@@ -116,8 +116,12 @@ node {
     }
 
     stage('populate state directory with gravity and cluster-ssl packages') {
-      withEnv(MAKE_ENV + ["BINARIES_DIR=${BINARIES_DIR}"]) {
-        sh 'make install-dependent-packages'
+      if (!params.BUILD_GRAVITY_APP) {
+        withEnv(MAKE_ENV + ["BINARIES_DIR=${BINARIES_DIR}"]) {
+          sh 'make install-dependent-packages'
+        }
+      } else {
+        echo 'Helm chart application is built without state. Stage skipped.'
       }
     }
 
