@@ -11,7 +11,7 @@ properties([
   disableConcurrentBuilds(),
   parameters([
     string(name: 'TAG',
-           defaultValue: 'master',
+           defaultValue: '',
            description: 'Git tag to build'),
     string(name: 'VERSION',
            defaultValue: '',
@@ -46,8 +46,11 @@ properties([
     string(name: 'GRAVITY_VERSION',
            defaultValue: '7.0.30',
            description: 'gravity/tele binaries version'),
+    string(name: 'TELE_VERSION',
+           defaultValue: '7.0.30',
+           description: 'Version of tele binary to build application'),
     string(name: 'CLUSTER_SSL_APP_VERSION',
-           defaultValue: '0.8.4',
+           defaultValue: '0.8.5',
            description: 'cluster-ssl-app version'),
     string(name: 'EXTRA_GRAVITY_OPTIONS',
            defaultValue: '',
@@ -58,21 +61,30 @@ properties([
     booleanParam(name: 'ADD_GRAVITY_VERSION',
                  defaultValue: false,
                  description: 'Appends "-${GRAVITY_VERSION}" to the tag to be published'),
-    booleanParam(name: 'BUILD_GRAVITY_APP',
-                 defaultValue: false,
-                 description: 'Generate a Gravity App tarball'),
     booleanParam(name: 'BUILD_CLUSTER_IMAGE',
-                 defaultValue: true,
+                 defaultValue: false,
                  description: 'Generate a Gravity Cluster Image(Self-sufficient tarball)'),
+    booleanParam(name: 'BUILD_GRAVITY_APP',
+                 defaultValue: true,
+                 description: 'Generate a Gravity App tarball'),
   ]),
 ])
 
 node {
   workspace {
     stage('checkout') {
+      print 'Running stage Checkout source'
+
+      def branches
+      if (params.TAG == '') { // No tag specified
+        branches = scm.branches
+      } else {
+        branches = [[name: "refs/tags/${params.TAG}"]]
+      }
+
       checkout([
         $class: 'GitSCM',
-        branches: [[name: "${params.TAG}"]],
+        branches: branches,
         doGenerateSubmoduleConfigurations: scm.doGenerateSubmoduleConfigurations,
         extensions: [[$class: 'CloneOption', noTags: false, shallow: false]],
         submoduleCfg: [],
@@ -104,8 +116,12 @@ node {
     }
 
     stage('populate state directory with gravity and cluster-ssl packages') {
-      withEnv(MAKE_ENV + ["BINARIES_DIR=${BINARIES_DIR}"]) {
-        sh 'make install-dependent-packages'
+      if (!params.BUILD_GRAVITY_APP) {
+        withEnv(MAKE_ENV + ["BINARIES_DIR=${BINARIES_DIR}"]) {
+          sh 'make install-dependent-packages'
+        }
+      } else {
+        echo 'Helm chart application is built without state. Stage skipped.'
       }
     }
 

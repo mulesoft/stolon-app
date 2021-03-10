@@ -9,7 +9,8 @@ TELE ?= $(shell which tele)
 GRAVITY ?= $(shell which gravity)
 INTERMEDIATE_RUNTIME_VERSION ?=
 GRAVITY_VERSION ?= 7.0.30
-CLUSTER_SSL_APP_VERSION ?= 0.8.4
+TELE_VERSION ?= 7.0.30
+CLUSTER_SSL_APP_VERSION ?= 0.8.5
 CLUSTER_SSL_APP_URL ?= https://github.com/gravitational/cluster-ssl-app/releases/download/${CLUSTER_SSL_APP_VERSION}/cluster-ssl-app-${CLUSTER_SSL_APP_VERSION}.tar.gz
 STATEDIR ?= state
 
@@ -169,7 +170,7 @@ robotest-run-suite:
 download-binaries: $(BINARIES_DIR)
 	for name in gravity tele; \
 	do \
-		curl https://get.gravitational.io/telekube/bin/$(GRAVITY_VERSION)/linux/x86_64/$$name -o $(BINARIES_DIR)/$$name; \
+		curl https://get.gravitational.io/telekube/bin/$(TELE_VERSION)/linux/x86_64/$$name -o $(BINARIES_DIR)/$$name; \
 		chmod +x $(BINARIES_DIR)/$$name; \
 	done
 
