@@ -13,6 +13,7 @@ TELE_VERSION ?= 7.0.30
 CLUSTER_SSL_APP_VERSION ?= 0.8.5
 CLUSTER_SSL_APP_URL ?= https://github.com/gravitational/cluster-ssl-app/releases/download/${CLUSTER_SSL_APP_VERSION}/cluster-ssl-app-${CLUSTER_SSL_APP_VERSION}.tar.gz
 STATEDIR ?= state
+TARBALL := build/application.tar
 
 SRCDIR=/go/src/github.com/gravitational/stolon-app
 DOCKERFLAGS=--rm=true -u $$(id -u):$$(id -g) -e XDG_CACHE_HOME=/tmp/.cache -v $(PWD):$(SRCDIR) -v $(GOPATH)/pkg:/gopath/pkg -w $(SRCDIR)
