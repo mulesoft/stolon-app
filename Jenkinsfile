@@ -147,7 +147,7 @@ node {
           archiveArtifacts "build/helm-application.tar"
         }
       } else {
-        echo 'skipped build gravity app'
+        echo 'skipped build gravity helm app'
       }
     }
 
@@ -158,7 +158,7 @@ node {
           archiveArtifacts "build/application.tar"
         }
       } else {
-        echo 'skipped build gravity helm app'
+        echo 'skipped build gravity app'
       }
     }
   }
