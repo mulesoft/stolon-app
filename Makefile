@@ -115,6 +115,12 @@ what-version:
 images: lint
 	cd images && $(MAKE) -f Makefile VERSION=$(VERSION)
 
+.PHONY: export
+export: import $(TARBALL)
+
+$(TARBALL):
+	$(GRAVITY) package export $(REPOSITORY)/$(NAME):$(VERSION) $(TARBALL) $(EXTRA_GRAVITY_OPTIONS)
+
 .PHONY: import
 import: images
 	sed -i "s#gravitational.io/cluster-ssl-app:0.0.0+latest#gravitational.io/cluster-ssl-app:$(CLUSTER_SSL_APP_VERSION)#" resources/app.yaml
