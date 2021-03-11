@@ -119,7 +119,7 @@ node {
     }
 
     stage('populate state directory with gravity and cluster-ssl packages') {
-      if (!params.BUILD_GRAVITY_APP) {
+      if (!params.BUILD_GRAVITY_HELM_APP) {
         withEnv(MAKE_ENV + ["BINARIES_DIR=${BINARIES_DIR}"]) {
           sh 'make install-dependent-packages'
         }
