@@ -67,7 +67,6 @@ properties([
     booleanParam(name: 'BUILD_GRAVITY_APP',
                  defaultValue: true,
                  description: 'Generate a Gravity App tarball'),
-  ]),
     booleanParam(name: 'BUILD_GRAVITY_HELM_APP',
                  defaultValue: false,
                  description: 'Generate a Gravity Helm App tarball'),
