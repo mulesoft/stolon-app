@@ -67,6 +67,9 @@ properties([
     booleanParam(name: 'BUILD_GRAVITY_APP',
                  defaultValue: true,
                  description: 'Generate a Gravity App tarball'),
+    booleanParam(name: 'BUILD_GRAVITY_HELM_APP',
+                 defaultValue: false,
+                 description: 'Generate a Gravity Helm App tarball'),
   ]),
 ])
 
@@ -116,7 +119,7 @@ node {
     }
 
     stage('populate state directory with gravity and cluster-ssl packages') {
-      if (!params.BUILD_GRAVITY_APP) {
+      if (!params.BUILD_GRAVITY_HELM_APP) {
         withEnv(MAKE_ENV + ["BINARIES_DIR=${BINARIES_DIR}"]) {
           sh 'make install-dependent-packages'
         }
@@ -135,11 +138,22 @@ node {
       }
     }
 
-    stage('build gravity app') {
-      if (params.BUILD_GRAVITY_APP) {
+    stage('build gravity helm app') {
+      if (params.BUILD_GRAVITY_HELM_APP) {
         withEnv(MAKE_ENV) {
           writeFile file: 'resources/custom-build.yaml', text: ''
           sh 'make build-gravity-app'
+          archiveArtifacts "build/helm-application.tar"
+        }
+      } else {
+        echo 'skipped build gravity helm app'
+      }
+    }
+
+    stage('build gravity app') {
+      if (params.BUILD_GRAVITY_APP) {
+        withEnv(MAKE_ENV) {
+          sh 'make export'
           archiveArtifacts "build/application.tar"
         }
       } else {

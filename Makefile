@@ -9,10 +9,11 @@ TELE ?= $(shell which tele)
 GRAVITY ?= $(shell which gravity)
 INTERMEDIATE_RUNTIME_VERSION ?=
 GRAVITY_VERSION ?= 7.0.30
-TELE_VERSION ?= 7.0.30
+TELE_VERSION ?= $(GRAVITY_VERSION)
 CLUSTER_SSL_APP_VERSION ?= 0.8.5
 CLUSTER_SSL_APP_URL ?= https://github.com/gravitational/cluster-ssl-app/releases/download/${CLUSTER_SSL_APP_VERSION}/cluster-ssl-app-${CLUSTER_SSL_APP_VERSION}.tar.gz
 STATEDIR ?= state
+TARBALL := build/application.tar
 
 SRCDIR=/go/src/github.com/gravitational/stolon-app
 DOCKERFLAGS=--rm=true -u $$(id -u):$$(id -g) -e XDG_CACHE_HOME=/tmp/.cache -v $(PWD):$(SRCDIR) -v $(GOPATH)/pkg:/gopath/pkg -w $(SRCDIR)
@@ -115,8 +116,14 @@ what-version:
 images: lint
 	cd images && $(MAKE) -f Makefile VERSION=$(VERSION)
 
+.PHONY: export
+export: import $(TARBALL)
+
+$(TARBALL):
+	$(GRAVITY) package export $(REPOSITORY)/$(NAME):$(VERSION) $(TARBALL) $(EXTRA_GRAVITY_OPTIONS)
+
 .PHONY: import
-import: images
+import: images $(BUILD_DIR)/resources/app.yaml
 	sed -i "s#gravitational.io/cluster-ssl-app:0.0.0+latest#gravitational.io/cluster-ssl-app:$(CLUSTER_SSL_APP_VERSION)#" resources/app.yaml
 	sed -i "s/tag: latest/tag: $(VERSION)/g" resources/charts/stolon/values.yaml
 	sed -i "s/0.1.0/$(VERSION)/g" resources/charts/stolon/Chart.yaml
@@ -140,10 +147,8 @@ build-app: images $(BUILD_DIR)/resources/app.yaml
 	$(TELE) build -f -o $(BUILD_DIR)/installer.tar $(TELE_BUILD_OPTIONS) $(EXTRA_GRAVITY_OPTIONS) $(BUILD_DIR)/resources/app.yaml
 
 .PHONY: build-gravity-app
-build-gravity-app: images
-	sed -i "s/0.1.0/$(VERSION)/g" resources/charts/stolon/Chart.yaml
-	$(TELE) build $(TELE_BUILD_APP_OPTIONS) -f -o $(BUILD_DIR)/application.tar resources/charts/stolon
-	sed -i "s/$(VERSION)/0.1.0/g" resources/charts/stolon/Chart.yaml
+build-gravity-app: images $(BUILD_DIR)/resources/app.yaml
+	$(TELE) build $(TELE_BUILD_APP_OPTIONS) -f -o $(BUILD_DIR)/helm-application.tar $(BUILD_DIR)/resources/charts/stolon
 
 .PHONY: build-stolonboot
 build-stolonboot: $(BUILD_DIR)
