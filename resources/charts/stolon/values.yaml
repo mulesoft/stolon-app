@@ -1,35 +1,36 @@
-# Default values for stolon.
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
-
-registry: ""
-tag: latest
-
+# clusterName:
 image:
-  repository: stolon
-  pullPolicy: Always
+  repository: sorintlab/stolon
+  tag: v0.16.0-pg10
+  pullPolicy: IfNotPresent
+  ## Add secrets manually via kubectl on kubernetes cluster and reference here
+  # pullSecrets:
+  #   - name: "myKubernetesSecret"
 
+# used by create-cluster-job when store.backend is etcd
 etcdImage:
-  repository: stolon-etcd
-  pullPolicy: Always
-
-telegrafImage:
-  repository: stolon-telegraf
-  pullPolicy: Always
-
-pgbouncerImage:
-  repository: stolon-pgbouncer
-  pullPolicy: Always
-
-stolonctlImage:
-  repository: stolonctl
-  pullPolicy: Always
-
-commonImage:
-  repository: stolon-common
-  pullPolicy: Always
+  repository: k8s.gcr.io/etcd-amd64
+  tag: 2.3.7
+  pullPolicy: IfNotPresent
 
 debug: false
+
+# Enable the creation of a shm volume
+shmVolume:
+  enabled: false
+
+persistence:
+  enabled: true
+  ## If defined, storageClassName: <storageClass>
+  ## If set to "-", storageClassName: "", which disables dynamic provisioning
+  ## If undefined (the default) or set to null, no storageClassName spec is
+  ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+  ##   GKE, AWS & OpenStack)
+  ##
+  storageClassName: ""
+  accessModes:
+    - ReadWriteOnce
+  size: 10Gi
 
 rbac:
   create: true
@@ -39,151 +40,164 @@ serviceAccount:
   # The name of the ServiceAccount to use. If not set and create is true, a name is generated using the fullname template
   name:
 
-# # Use existing secret (ignores superuser and replication passwords)
-# existingSecret:
+superuserSecret:
+  name: ""
+  usernameKey: pg_su_username
+  passwordKey: pg_su_password
 
-superuser:
-  username: stolon
-  password:
-  ## Option to force users to specify a password. That is required for 'helm upgrade' to work properly.
-  ## If it is not force, a random password will be generated.
-  forcePassword: false
+replicationSecret:
+  name: ""
+  usernameKey: pg_repl_username
+  passwordKey: pg_repl_password
 
-replication:
-  username: repluser
-  password:
-  ## Option to force users to specify a password. That is required for 'helm upgrade' to work properly.
-  ## If it is not force, a random password will be generated.
-  forcePassword: false
+superuserPasswordFile:
 
-# backend could be one of the following: consul, etcdv2, etcdv3 or kubernetes
+superuserUsername: "stolon"
+## password for the superuser (REQUIRED if superuserSecret and superuserPasswordFile are not set)
+superuserPassword:
+
+replicationPasswordFile:
+
+replicationUsername: "repluser"
+## password for the replication user (REQUIRED if replicationSecret and replicationPasswordFile are not set)
+replicationPassword:
+
+## backend could be one of the following: consul, etcdv2, etcdv3 or kubernetes
 store:
-  backend: etcd
-  endpoints: "http://127.0.0.1:2379"
+  backend: kubernetes
+#  endpoints: "http://stolon-consul:8500"
+  kubeResourceKind: configmap
 
-clusterSpec:
-  max_replication_lag: 300
+pgParameters: {}
+  # max_connections: "1000"
 
 ports:
   stolon:
     containerPort: 5432
-  stolonrpc:
-    containerPort: 5431
+  metrics:
+    containerPort: 8080
 
-telegraf:
-  service:
-    name: stolon-metrics
-    port: 9273
-    targetPort: 9273
-  config:
-    agent:
-      interval: "60s"
-      round_interval: true
-      metric_batch_size: 1000
-      metric_buffer_limit: 10000
-      collection_jitter: "0s"
-      flush_interval: "10s"
-      flush_jitter: "0s"
-      precision: ""
-      debug: false
-      quiet: false
-      logfile: ""
-      hostname: "$HOSTNAME"
-      omit_hostname: false
-    outputs:
-      - prometheus_client:
-          listen: ":9273"
-    inputs:
-      - postgresql:
-          address: "host=$STOLON_HOST user=$STOLON_USERNAME password=$STOLON_PASSWORD dbname=postgres sslmode=require"
-          ignored_databases:
-            - "template0"
-            - "template1"
-      - postgresql_extensible:
-          address: "host=$STOLON_HOST user=$STOLON_USERNAME password=$STOLON_PASSWORD dbname=postgres sslmode=require"
-          name_prefix: "pg_"
-          query:
-            sqlquery: "SELECT slot_name, active, client_addr, pg_xlog_location_diff(pg_current_xlog_insert_location(), restart_lsn) AS ret_bytes FROM pg_replication_slots JOIN pg_stat_replication ON pg_replication_slots.active_pid = pg_stat_replication.pid"
-            version: 901
-            withdbname: false
-            tagvalue: "slot_name"
+serviceMonitor:
+  # When set to true then use a ServiceMonitor to collect metrics
+  enabled: false
+  # Custom labels to use in the ServiceMonitor to be matched with a specific Prometheus
+  labels: {}
+  # Set the namespace the ServiceMonitor should be deployed to
+  # namespace: default
+  # Set how frequently Prometheus should scrape
+  # interval: 30s
+  # Set timeout for scrape
+  # scrapeTimeout: 10s
 
-sentinel:
-  containerPort: 6431
-  keeperControlPort: 5431
-  configMountPath: /etc/stolon/
-  replicaCount: 2
-  affinity: {}
-  initVolumeMounts:
-    - name: stolon-secrets
-      mountPath: /home/stolon/secrets
-    - name: etcd-secrets
-      mountPath: /var/state
-  volumeMounts:
-    - name: stolon-secrets
-      mountPath: /home/stolon/secrets
-  volumes:
-    - name: stolon-secrets
-      emptyDir: {}
-    - name: etcd-secrets
-      hostPath:
-        path: /var/state
+job:
+  autoCreateCluster: true
+  autoUpdateClusterSpec: true
+  annotations: {}
+
+clusterSpec: {}
+  # sleepInterval: 1s
+  # maxStandbys: 5
+
+## Enable support ssl into postgres, you must specify the certs.
+## ref: https://www.postgresql.org/docs/10/ssl-tcp.html
+##
+tls:
+  enabled: false
+  rootCa: |-
+  serverCrt: |-
+  serverKey: |-
+
+  # existingSecret: name-of-existing-secret-to-postgresql
 
 keeper:
+  uid_prefix: "keeper"
   replicaCount: 2
+  annotations: {}
+  resources: {}
+  priorityClassName: ""
+  fsGroup: ""
+  service:
+    type: ClusterIP
+    annotations: {}
+    ports:
+      keeper:
+        port: 5432
+        targetPort: 5432
+        protocol: TCP
   nodeSelector: {}
-  initVolumeMounts:
-    - name: data
-      mountPath: /stolon-data
-  etcdVolumeMounts:
-    - name: stolon-secrets
-      mountPath: /home/stolon/secrets
-  volumeMounts:
-    - name: data
-      mountPath: /stolon-data
-    - name: stolon-secrets
-      mountPath: /home/stolon/secrets
-  volumes:
-    - name: etcd-secrets
-      hostPath:
-        path: /var/state
+  affinity: {}
+  tolerations: []
+  volumes: []
+  volumeMounts: []
+  hooks:
+    failKeeper:
+      enabled: false
+  podDisruptionBudget:
+    # minAvailable: 1
+    # maxUnavailable: 1
+  extraEnv: []
+  #  - name: STKEEPER_LOG_LEVEL
+  #    value: "info"
 
 proxy:
-  containerPort: 5434
+  replicaCount: 2
+  annotations: {}
+  resources: {}
+  priorityClassName: ""
   service:
     type: ClusterIP
 #    loadBalancerIP: ""
+    annotations: {}
     ports:
       proxy:
         port: 5432
-        targetPort: 5434
+        targetPort: 5432
         protocol: TCP
-
-pgbouncer:
-  replicaCount: 2
+  nodeSelector: {}
   affinity: {}
-  service:
-    type: ClusterIP
-#    loadBalancerIP: ""
-    ports:
-      pgbouncer:
-        port: 5432
-        targetPort: 6432
-        protocol: TCP
+  tolerations: []
+  podDisruptionBudget:
+    # minAvailable: 1
+    # maxUnavailable: 1
+  extraEnv: []
+  #  - name: STPROXY_LOG_LEVEL
+  #    value: "info"
+  #  - name: STPROXY_TCP_KEEPALIVE_COUNT
+  #    value: "0"
+  #  - name: STPROXY_TCP_KEEPALIVE_IDLE
+  #    value: "0"
+  #  - name: STPROXY_TCP_KEEPALIVE_INTERVAL
+  #    value: "0"
 
-pgbouncerConfig:
-  maxClientConnections: 100
-  serverTLSMode: require
-  serverTLSCertFile: /home/stolon/secrets/pgbouncer.pem
-  serverTLSKeyFile: /home/stolon/secrets/pgbouncer-key.pem
+sentinel:
+  replicaCount: 2
+  annotations: {}
+  resources: {}
+  priorityClassName: ""
+  nodeSelector: {}
+  affinity: {}
+  tolerations: []
+  podDisruptionBudget:
+    # minAvailable: 1
+    # maxUnavailable: 1
+  extraEnv: []
+  #  - name: STSENTINEL_LOG_LEVEL
+  #    value: "info"
 
-stolonctl:
-  replicaCount: 1
-  service:
-    type: ClusterIP
-#    loadBalancerIP: ""
-    ports:
-      stolonctl:
-        port: 8080
-        targetPort: 8080
-        protocol: TCP
+## initdb scripts
+## Specify dictionary of scripts to be run at first boot, the entry point script is create_script.sh
+## i.e. you can use pgsql to run sql script on the cluster.
+##
+# initdbScripts:
+#   create_script.sh: |
+#      #!/bin/sh
+#      echo "Do something."
+
+## nodePostStart scripts
+## Specify dictionary of scripts to be run at first boot, the entry point script is postStartScript.sh
+## i.e. you can create tablespace directory here.
+##
+# nodePostStartScript:
+#  postStartScript.sh: |
+#    #!/bin/bash
+#     echo "Do something."
