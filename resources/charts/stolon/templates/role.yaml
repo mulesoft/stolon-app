@@ -10,6 +10,14 @@ metadata:
     heritage: {{ .Release.Service }}
 rules:
 - apiGroups:
+    - extensions
+  resources:
+    - podsecuritypolicies
+  resourceNames:
+    - privileged
+  verbs:
+    - use
+- apiGroups:
     - ""
   resources:
     - pods

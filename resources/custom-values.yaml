@@ -1,105 +1,28 @@
----
-clusterName: kube-stolon
+superuserPassword: passw0rd
+replicationPassword: passw0rd
 
-registry: "leader.telekube.local:5000/"
+persistence:
+  enabled: false
 
-debug: "false"
-
-store:
-  backend: etcd
-  endpoints: "127.0.0.1:2379"
-  caFile: /home/stolon/secrets/etcd/root.cert
-  certFile: /home/stolon/secrets/etcd/etcd.cert
-  key: /home/stolon/secrets/etcd/etcd.key
-
-clusterSpec:
-  request_timeout: "60s"
-  keeper_fail_interval: "60s"
-  init_with_multiple_keepers: true
-  max_standbys_per_sender: 5
-  max_replication_lag_bytes: 16777216
-  max_replication_lag: 300
-  pg_parameters:
-    idle_in_transaction_session_timeout: "10min"
-    log_destination: "stderr"
-    log_min_messages: "INFO"
-    log_checkpoints: "on"
-    log_min_duration_statement: "1s"
-    log_lock_waits: "on"
-    log_line_prefix: '%m [%p]: [%l-1] user=%u,db=%d '
-
-sentinel:
-  replicaCount: 3
-  affinity:
-    podAntiAffinity:
-      preferredDuringSchedulingIgnoredDuringExecution:
-        - weight: 100
-          podAffinityTerm:
-            labelSelector:
-              matchExpressions:
-                - key: component
-                  operator: In
-                  values:
-                    - stolon-sentinel
-            topologyKey: kubernetes.io/hostname
+serviceMonitor:
+  enabled: true
 
 keeper:
-  nodeSelector:
-    stolon-keeper: "yes"
-  affinity:
-    podAntiAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        - labelSelector:
-            matchExpressions:
-              - key: component
-                operator: In
-                values:
-                  - stolon-keeper
-          topologyKey: kubernetes.io/hostname
-  initVolumeMounts:
-    - name: stolon-secrets
-      mountPath: /home/stolon/secrets
-    - name: data
-      mountPath: /stolon-data
-    - name: cluster-ca
-      mountPath: /etc/secrets/cluster-ca
-    - name: cluster-default-ssl
-      mountPath: /etc/secrets/cluster-default
-    - name: etcd-secrets
-      mountPath: /var/state
-  volumeMounts:
-    - name: stolon-secrets
-      mountPath: /home/stolon/secrets
-    - name: data
-      mountPath: /stolon-data
-    - name: cluster-ca
-      mountPath: /etc/ssl/cluster-ca
-    - name: cluster-default-ssl
-      mountPath: /etc/ssl/cluster-default-ssl
-  volumes:
-    - name: stolon-secrets
-      emptyDir: {}
-    - name: etcd-secrets
-      hostPath:
-        path: /var/state
-    - name: cluster-ca
-      secret:
-        secretName: cluster-ca
-    - name: cluster-default-ssl
-      secret:
-        secretName: cluster-default-ssl
+  replicaCount: 3
 
-pgbouncer:
-  replicaCount: 2
-  affinity:
-    podAntiAffinity:
-      preferredDuringSchedulingIgnoredDuringExecution:
-        - weight: 100
-          podAffinityTerm:
-            labelSelector:
-              matchExpressions:
-                - key: component
-                  operator: In
-                  values:
-                    - stolon-pgbouncer
-            topologyKey: kubernetes.io/hostname
+clusterSpec:
+  requestTimeout: "60s"
+  failInterval: "60s"
+  maxStandbyLag: 16
+  usePgrewind: true
+  maxStandbys: 5
+
+pgParameters:
+  max_connections: 500
+  idle_in_transaction_session_timeout: "10min"
+  log_destination: "stderr"
+  log_min_messages: "INFO"
+  log_checkpoints: "on"
+  log_min_duration_statement: "1s"
+  log_lock_waits: "on"
+  log_line_prefix: '%m [%p]: [%l-1] user=%u,db=%d '
