@@ -1,9 +1,9 @@
 ARG PGVERSION=12
 # base build image
 FROM quay.io/gravitational/debian-venti:go1.15.10-buster AS builder
-ARG STOLON_REVISION=6353dbc5542d7243bd2bd5256f0a945fdc1f5c23
+ARG STOLON_REVISION=8420cb13a635fabe503848cbe51a0586828e5fd1
 
-ENV REPO_PATH=/gopath/src/github.com/gravitational/stolon
+ENV REPO_PATH=/gopath/src/github.com/sorintlab/stolon
 RUN set -eux; \
     apt-get update && \
     apt-get install -qq -y git && \
@@ -49,7 +49,7 @@ RUN apt-get update && \
 
 EXPOSE 5432
 
-COPY --from=builder /gopath/src/github.com/gravitational/stolon/bin/ /usr/local/bin
+COPY --from=builder /gopath/src/github.com/sorintlab/stolon/bin/ /usr/local/bin
 COPY --from=downloader /pgmetrics /usr/local/bin
 
 RUN chmod +x /usr/local/bin/stolon-keeper /usr/local/bin/stolon-sentinel /usr/local/bin/stolon-proxy
