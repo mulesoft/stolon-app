@@ -174,7 +174,7 @@ spec:
             - name: STKEEPER_DEBUG
               value: {{ .Values.debug | quote }}
             - name: STKEEPER_PG_BIN_PATH
-              value: /usr/lib/postgresql/9.6/bin
+              value: /usr/lib/postgresql/12/bin
             - name: STKEEPER_PORT
               value: {{ .Values.ports.stolonrpc.containerPort | quote }}
             - name: STKEEPER_PG_PORT
