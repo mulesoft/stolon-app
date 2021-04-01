@@ -7,5 +7,5 @@ RUN apt-get update && apt-get install wget -yy && \
 	tar -xvf golangci-lint-$GOLANGCI_LINT_VER-linux-amd64.tar.gz \
     golangci-lint-$GOLANGCI_LINT_VER-linux-amd64/golangci-lint --strip-components=1
 
-FROM golang:1.13-buster
+FROM golang:1.15-buster
 COPY --from=downloader /golangci-lint /usr/local/bin/

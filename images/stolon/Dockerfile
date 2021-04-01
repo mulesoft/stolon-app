@@ -1,6 +1,6 @@
-ARG PGVERSION=9.6
+ARG PGVERSION=12
 # base build image
-FROM quay.io/gravitational/debian-venti:go1.13.8-buster AS builder
+FROM quay.io/gravitational/debian-venti:go1.15.10-buster AS builder
 ARG STOLON_REVISION=6353dbc5542d7243bd2bd5256f0a945fdc1f5c23
 
 ENV REPO_PATH=/gopath/src/github.com/gravitational/stolon
@@ -19,7 +19,7 @@ RUN mkdir -p bin && \
     go build -a -installsuffix cgo -ldflags '-s' -o bin/stolon-keeper ${REPO_PATH}/cmd/keeper
 
 FROM quay.io/gravitational/debian-grande:buster AS downloader
-ARG PGMETRICS_VERSION=1.7.0
+ARG PGMETRICS_VERSION=1.10.5
 RUN apt-get update && apt-get install wget -yqq && \
     wget https://github.com/rapidloop/pgmetrics/releases/download/v${PGMETRICS_VERSION}/pgmetrics_${PGMETRICS_VERSION}_linux_amd64.tar.gz && \
     tar xvf pgmetrics_${PGMETRICS_VERSION}_linux_amd64.tar.gz && \

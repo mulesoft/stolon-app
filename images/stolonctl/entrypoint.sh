@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 # -*- mode: sh; -*-
 
 # set -o xtrace

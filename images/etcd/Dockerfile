@@ -1,5 +1,5 @@
 FROM quay.io/gravitational/debian-grande:buster as downloader
-ARG ETCD_VERSION=v3.3.11
+ARG ETCD_VERSION=v3.4.15
 ENV DEBIAN_FRONTEND noninteractive
 
 RUN apt-get update && \
