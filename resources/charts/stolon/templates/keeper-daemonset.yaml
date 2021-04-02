@@ -92,11 +92,11 @@ spec:
               value: {{ .Values.store.endpoints | quote}}
             {{- end }}
             {{- if not (empty .Values.store.caFile) }}
-            - name: STPROXY_STORE_CACERT
+            - name: STPROXY_STORE_CA_FILE
               value: {{ .Values.store.caFile | quote }}
             {{- end }}
             {{- if not (empty .Values.store.certFile) }}
-            - name: STPROXY_STORE_CERT
+            - name: STPROXY_STORE_CERT_FILE
               value: {{ .Values.store.certFile | quote }}
             {{- end }}
             {{- if not (empty .Values.store.key) }}
@@ -138,11 +138,11 @@ spec:
               value: {{ .Values.store.endpoints | quote}}
             {{- end }}
             {{- if not (empty .Values.store.caFile) }}
-            - name: STKEEPER_STORE_CACERT
+            - name: STKEEPER_STORE_CA_FILE
               value: {{ .Values.store.caFile | quote }}
             {{- end }}
             {{- if not (empty .Values.store.certFile) }}
-            - name: STKEEPER_STORE_CERT
+            - name: STKEEPER_STORE_CERT_FILE
               value: {{ .Values.store.certFile | quote }}
             {{- end }}
             {{- if not (empty .Values.store.key) }}
@@ -175,8 +175,6 @@ spec:
               value: {{ .Values.debug | quote }}
             - name: STKEEPER_PG_BIN_PATH
               value: /usr/lib/postgresql/12/bin
-            - name: STKEEPER_PORT
-              value: {{ .Values.ports.stolonrpc.containerPort | quote }}
             - name: STKEEPER_PG_PORT
               value: {{ .Values.ports.stolon.containerPort | quote }}
             - name: STKEEPER_PG_SSL_REPLICATION

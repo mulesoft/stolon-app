@@ -80,26 +80,18 @@ spec:
               value: {{ .Values.store.endpoints | quote}}
             {{- end }}
             {{- if not (empty .Values.store.caFile) }}
-            - name: STSENTINEL_STORE_CACERT
+            - name: STSENTINEL_STORE_CA_FILE
               value: {{ .Values.store.caFile | quote }}
             {{- end }}
             {{- if not (empty .Values.store.certFile) }}
-            - name: STSENTINEL_STORE_CERT
+            - name: STSENTINEL_STORE_CERT_FILE
               value: {{ .Values.store.certFile | quote }}
             {{- end }}
             {{- if not (empty .Values.store.key) }}
             - name: STSENTINEL_STORE_KEY
               value: {{ .Values.store.key | quote }}
             {{- end }}
-            - name: STSENTINEL_KEEPER_KUBE_LABEL_SELECTOR
-              value: 'stolon-cluster={{ template "stolon.clusterName" . }},stolon-keeper=yes'
-            - name: STSENTINEL_KUBERNETES_NAMESPACE
-              value: {{ .Release.Namespace | quote }}
-            - name: STSENTINEL_PORT
-              value: {{ .Values.sentinel.containerPort | quote }}
-            - name: STSENTINEL_KEEPER_PORT
-              value: {{ .Values.sentinel.keeperControlPort | quote }}
-            - name: STSENTINEL_INITIAL_CLUSTER_CONFIG
+            - name: STSENTINEL_INITIAL_CLUSTER_SPEC
               value: "{{ .Values.sentinel.configMountPath }}/cluster-config.json"
             - name: STSENTINEL_DEBUG
               value: {{ .Values.debug | quote}}

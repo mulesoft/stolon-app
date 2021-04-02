@@ -67,8 +67,6 @@ clusterSpec:
 ports:
   stolon:
     containerPort: 5432
-  stolonrpc:
-    containerPort: 5431
 
 telegraf:
   service:
@@ -109,8 +107,6 @@ telegraf:
             tagvalue: "slot_name"
 
 sentinel:
-  containerPort: 6431
-  keeperControlPort: 5431
   configMountPath: /etc/stolon/
   replicaCount: 2
   affinity: {}
