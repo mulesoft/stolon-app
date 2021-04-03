@@ -59,7 +59,7 @@ replication:
 # backend could be one of the following: consul, etcdv2, etcdv3 or kubernetes
 store:
   backend: etcd
-  endpoints: "http://127.0.0.1:2379"
+  endpoints: "https://127.0.0.1:2379"
 
 clusterSpec:
   max_replication_lag: 300

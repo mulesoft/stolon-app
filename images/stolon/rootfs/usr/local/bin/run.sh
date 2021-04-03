@@ -2,10 +2,7 @@
 
 set -e
 
-export STORE_ENDPOINTS=${STORE_ENDPOINTS:-127.0.0.1:2379}
-export STSENTINEL_STORE_ENDPOINTS=$STORE_ENDPOINTS
-export STKEEPER_STORE_ENDPOINTS=$STORE_ENDPOINTS
-export STPROXY_STORE_ENDPOINTS=$STORE_ENDPOINTS
+export STORE_ENDPOINTS=${STORE_ENDPOINTS:-https://127.0.0.1:2379}
 
 function die() {
 	echo "ERROR: $*" >&2
@@ -45,15 +42,18 @@ function _create_pg_pass() {
 function launch_keeper() {
 	announce_step 'Launching stolon keeper'
 
+	export STKEEPER_STORE_ENDPOINTS=$STORE_ENDPOINTS
 	export STKEEPER_LISTEN_ADDRESS=$POD_IP
 	export STKEEPER_PG_LISTEN_ADDRESS=$POD_IP
+	export STKEEPER_DATA_DIR=${STKEEPER_DATA_DIR:-/stolon-data}
 
-	stolon-keeper --data-dir /stolon-data
+	stolon-keeper --data-dir $STKEEPER_DATA_DIR
 }
 
 function launch_sentinel() {
 	announce_step 'Launching stolon sentinel'
 
+	export STSENTINEL_STORE_ENDPOINTS=$STORE_ENDPOINTS
 	export STSENTINEL_LISTEN_ADDRESS=$POD_IP
 	stolon-sentinel
 }
@@ -61,6 +61,7 @@ function launch_sentinel() {
 function launch_proxy() {
 	announce_step 'Launching stolon proxy'
 
+	export STPROXY_STORE_ENDPOINTS=$STORE_ENDPOINTS
 	export STPROXY_LISTEN_ADDRESS=$POD_IP
 	stolon-proxy
 }
