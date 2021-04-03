@@ -1,4 +1,4 @@
-ARG PGVERSION=12
+ARG PGVERSION=11
 # base build image
 FROM quay.io/gravitational/debian-venti:go1.15.10-buster AS builder
 ARG STOLON_REVISION=8420cb13a635fabe503848cbe51a0586828e5fd1

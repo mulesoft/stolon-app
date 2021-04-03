@@ -1,4 +1,4 @@
-ARG PGVERSION=12
+ARG PGVERSION=11
 FROM postgres:$PGVERSION
 
 RUN apt-get update && \
