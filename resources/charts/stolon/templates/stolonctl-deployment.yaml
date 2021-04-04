@@ -50,7 +50,7 @@ spec:
                 fieldRef:
                   fieldPath: spec.nodeName
             - name: ETCD_ENDPOINTS
-              value: "$(NODE_NAME):2379"
+              value: "https://$(NODE_NAME):2379"
             {{- if not (empty .Values.store.caFile) }}
             - name: ETCD_CACERT
               value: {{ .Values.store.caFile | quote }}
