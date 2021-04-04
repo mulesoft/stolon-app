@@ -31,7 +31,7 @@ spec:
                 fieldRef:
                   fieldPath: spec.nodeName
             - name: ETCD_ENDPOINTS
-              value: "$(NODE_NAME):2379"
+              value: "https://$(NODE_NAME):2379"
           volumeMounts:
             - name: etcd-secrets
               mountPath: /etc/etcd/secrets
