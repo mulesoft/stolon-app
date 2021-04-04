@@ -24,7 +24,6 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/gravitational/stolon-app/internal/stolonctl/pkg/cluster"
 	"github.com/gravitational/stolon-app/internal/stolonctl/pkg/defaults"
 
@@ -215,8 +214,9 @@ func collectMetricsFromStatus(status *cluster.Status) (result statusMetrics) {
 	for _, pod := range status.PodsStatus {
 		var keeperID string
 		for _, keeperState := range status.ClusterData.DBs {
-			if pod.PodIP == keeperState.Spec.KeeperUID {
+			if pod.PodIP == keeperState.Status.ListenAddress {
 				keeperID = keeperState.UID
+				break
 			}
 		}
 		if keeperID != "" && status.ClusterData.DBs[keeperID].Spec != nil {
@@ -243,7 +243,6 @@ func collectMetricsFromStatus(status *cluster.Status) (result statusMetrics) {
 			}
 		}
 	}
-	spew.Dump(result)
 	return result
 }
 
