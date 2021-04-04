@@ -98,9 +98,6 @@ func (c *Config) CheckAndSetDefaults() error {
 	if err := c.Postgres.Check(); err != nil {
 		errors = append(errors, err)
 	}
-	if err := c.Upgrade.CheckAndSetDefaults(); err != nil {
-		errors = append(errors, err)
-	}
 	return trace.NewAggregate(errors...)
 }
 

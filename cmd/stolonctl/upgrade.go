@@ -68,6 +68,14 @@ func upgrade(ccmd *cobra.Command, args []string) error {
 		return trace.Wrap(err)
 	}
 
+	if err := clusterConfig.Postgres.Check(); err != nil {
+		return trace.Wrap(err)
+	}
+
+	if err := clusterConfig.Upgrade.CheckAndSetDefaults(); err != nil {
+		return trace.Wrap(err)
+	}
+
 	err := cluster.Upgrade(ctx, clusterConfig)
 	if err != nil {
 		return trace.Wrap(err)
