@@ -1,7 +1,7 @@
 ARG PGVERSION=11
 # base build image
 FROM quay.io/gravitational/debian-venti:go1.15.10-buster AS builder
-ARG STOLON_REVISION=8420cb13a635fabe503848cbe51a0586828e5fd1
+ARG STOLON_REVISION=fec51408a83e6909c51e62ff54127d89748148fc
 
 ENV REPO_PATH=/gopath/src/github.com/sorintlab/stolon
 RUN set -eux; \
@@ -15,7 +15,7 @@ WORKDIR $REPO_PATH
 RUN mkdir -p bin && \
     CGO_ENABLED=0 go build -a -installsuffix cgo -ldflags '-s' -o bin/stolon-sentinel ${REPO_PATH}/cmd/sentinel && \
     CGO_ENABLED=0 go build -a -installsuffix cgo -ldflags '-s' -o bin/stolon-proxy ${REPO_PATH}/cmd/proxy && \
-    CGO_ENABLED=0 go build -a -installsuffix cgo -ldflags '-s' -o bin/stolontool ${REPO_PATH}/cmd/stolonctl && \
+    CGO_ENABLED=0 go build -a -installsuffix cgo -ldflags '-s' -o bin/stolonctl ${REPO_PATH}/cmd/stolonctl && \
     go build -a -installsuffix cgo -ldflags '-s' -o bin/stolon-keeper ${REPO_PATH}/cmd/keeper
 
 FROM quay.io/gravitational/debian-grande:buster AS downloader

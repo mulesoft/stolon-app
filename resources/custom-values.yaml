@@ -28,6 +28,8 @@ clusterSpec:
     log_min_duration_statement: "1s"
     log_lock_waits: "on"
     log_line_prefix: '%m [%p]: [%l-1] user=%u,db=%d '
+    wal_keep_segments: "128"
+    max_connections: 500
 
 sentinel:
   replicaCount: 3
