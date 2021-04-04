@@ -16,14 +16,13 @@ package cluster
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 	"time"
 
 	"github.com/sorintlab/stolon/common"
-
-	"fmt"
-	"sort"
 
 	"github.com/mitchellh/copystructure"
 )
@@ -44,7 +43,10 @@ const (
 )
 
 const (
-	DefaultProxyCheckInterval = 5 * time.Second
+	DefaultProxyCheckInterval   = 5 * time.Second
+	DefaultProxyTimeoutInterval = 15 * time.Second
+
+	DefaultDBNotIncreasingXLogPosTimes = 10
 
 	DefaultSleepInterval                         = 5 * time.Second
 	DefaultRequestTimeout                        = 10 * time.Second
@@ -57,8 +59,9 @@ const (
 	DefaultMaxStandbysPerSender      uint16      = 3
 	DefaultMaxStandbyLag                         = 1024 * 1204
 	DefaultSynchronousReplication                = false
-	DefaultMaxSynchronousStandbys    uint16      = 1
 	DefaultMinSynchronousStandbys    uint16      = 1
+	DefaultMaxSynchronousStandbys    uint16      = 1
+	DefaultAdditionalWalSenders                  = 5
 	DefaultUsePgrewind                           = false
 	DefaultMergePGParameter                      = true
 	DefaultRole                      ClusterRole = ClusterRoleMaster
@@ -135,6 +138,12 @@ const (
 	DBInitModeResync DBInitMode = "resync"
 )
 
+type NewConfig struct {
+	Locale        string `json:"locale,omitempty"`
+	Encoding      string `json:"encoding,omitempty"`
+	DataChecksums bool   `json:"dataChecksums,omitempty"`
+}
+
 type PITRConfig struct {
 	// DataRestoreCommand defines the command to execute for restoring the db
 	// cluster data). %d is replaced with the full path to the db cluster
@@ -152,12 +161,16 @@ type ExistingConfig struct {
 type ArchiveRecoverySettings struct {
 	// value for restore_command
 	RestoreCommand string `json:"restoreCommand,omitempty"`
-	//TODO(sgotti) add missing options
 }
 
 // RecoveryTargetSettings defines the recovery target settings in the recovery.conf file (https://www.postgresql.org/docs/9.6/static/recovery-target-settings.html )
 type RecoveryTargetSettings struct {
-	//TODO(sgotti) add options
+	RecoveryTarget         string `json:"recoveryTarget,omitempty"`
+	RecoveryTargetLsn      string `json:"recoveryTargetLsn,omitempty"`
+	RecoveryTargetName     string `json:"recoveryTargetName,omitempty"`
+	RecoveryTargetTime     string `json:"recoveryTargetTime,omitempty"`
+	RecoveryTargetXid      string `json:"recoveryTargetXid,omitempty"`
+	RecoveryTargetTimeline string `json:"recoveryTargetTimeline,omitempty"`
 }
 
 // StandbySettings defines the standby settings in the recovery.conf file (https://www.postgresql.org/docs/9.6/static/standby-settings.html )
@@ -197,7 +210,7 @@ type ClusterSpec struct {
 	MaxStandbysPerSender *uint16 `json:"maxStandbysPerSender,omitempty"`
 	// Max lag in bytes that an asynchronous standy can have to be elected in
 	// place of a failed master
-	MaxStandbyLag *uint32 `json:"maxStandbyLage,omitempty"`
+	MaxStandbyLag *uint32 `json:"maxStandbyLag,omitempty"`
 	// Use Synchronous replication between master and its standbys
 	SynchronousReplication *bool `json:"synchronousReplication,omitempty"`
 	// MinSynchronousStandbys is the mininum number if synchronous standbys
@@ -206,6 +219,9 @@ type ClusterSpec struct {
 	// MaxSynchronousStandbys is the maximum number if synchronous standbys
 	// to be configured when SynchronousReplication is true
 	MaxSynchronousStandbys *uint16 `json:"maxSynchronousStandbys,omitempty"`
+	// AdditionalWalSenders defines the number of additional wal_senders in
+	// addition to the ones internally defined by stolon
+	AdditionalWalSenders *uint16 `json:"additionalWalSenders"`
 	// Whether to use pg_rewind
 	UsePgrewind *bool `json:"usePgrewind,omitempty"`
 	// InitMode defines the cluster initialization mode. Current modes are: new, existing, pitr
@@ -216,6 +232,8 @@ type ClusterSpec struct {
 	MergePgParameters *bool `json:"mergePgParameters,omitempty"`
 	// Role defines the cluster operating role (master or standby of an external database)
 	Role *ClusterRole `json:"role,omitempty"`
+	// Init configuration used when InitMode is "new"
+	NewConfig *NewConfig `json:"newConfig,omitempty"`
 	// Point in time recovery init configuration used when InitMode is "pitr"
 	PITRConfig *PITRConfig `json:"pitrConfig,omitempty"`
 	// Existing init configuration used when InitMode is "existing"
@@ -224,6 +242,9 @@ type ClusterSpec struct {
 	StandbySettings *StandbySettings `json:"standbySettings,omitempty"`
 	// Map of postgres parameters
 	PGParameters PGParameters `json:"pgParameters,omitempty"`
+	// Additional pg_hba.conf entries
+	// we don't set omitempty since we want to distinguish between null or empty slice
+	PGHBA []string `json:"pgHBA"`
 }
 
 type ClusterStatus struct {
@@ -318,6 +339,9 @@ func (os *ClusterSpec) WithDefaults() *ClusterSpec {
 	if s.MaxSynchronousStandbys == nil {
 		s.MaxSynchronousStandbys = Uint16P(DefaultMaxSynchronousStandbys)
 	}
+	if s.AdditionalWalSenders == nil {
+		s.AdditionalWalSenders = Uint16P(DefaultAdditionalWalSenders)
+	}
 	if s.MergePgParameters == nil {
 		s.MergePgParameters = BoolP(DefaultMergePGParameter)
 	}
@@ -370,6 +394,13 @@ func (os *ClusterSpec) Validate() error {
 	if s.InitMode == nil {
 		return fmt.Errorf("initMode undefined")
 	}
+	// The unique validation we're doing on pgHBA entries is that they don't contain a newline character
+	for _, e := range s.PGHBA {
+		if strings.Contains(e, "\n") {
+			return fmt.Errorf("pgHBA entries cannot contain newline characters")
+		}
+	}
+
 	switch *s.InitMode {
 	case ClusterInitModeNew:
 		if *s.Role == ClusterRoleStandby {
@@ -493,12 +524,20 @@ type DBSpec struct {
 	SynchronousReplication bool `json:"synchronousReplication,omitempty"`
 	// Whether to use pg_rewind
 	UsePgrewind bool `json:"usePgrewind,omitempty"`
+	// AdditionalWalSenders defines the number of additional wal_senders in
+	// addition to the ones internally defined by stolon
+	AdditionalWalSenders uint16 `json:"additionalWalSenders"`
 	// InitMode defines the db initialization mode. Current modes are: none, new
 	InitMode DBInitMode `json:"initMode,omitempty"`
+	// Init configuration used when InitMode is "new"
+	NewConfig *NewConfig `json:"newConfig,omitempty"`
 	// Point in time recovery init configuration used when InitMode is "pitr"
 	PITRConfig *PITRConfig `json:"pitrConfig,omitempty"`
 	// Map of postgres parameters
 	PGParameters PGParameters `json:"pgParameters,omitempty"`
+	// Additional pg_hba.conf entries
+	// We don't set omitempty since we want to distinguish between null or empty slice
+	PGHBA []string `json:"pgHBA"`
 	// DB Role (master or standby)
 	Role common.Role `json:"role,omitempty"`
 	// FollowConfig when Role is "standby"
@@ -526,6 +565,7 @@ type DBStatus struct {
 
 	PGParameters        PGParameters `json:"pgParameters,omitempty"`
 	SynchronousStandbys []string     `json:"synchronousStandbys"`
+	OlderWalFile        string       `json:"olderWalFile,omitempty"`
 }
 
 type DB struct {
@@ -539,13 +579,11 @@ type DB struct {
 }
 
 type ProxySpec struct {
-	MasterDBUID string `json:"masterDbUid,omitempty"`
+	MasterDBUID    string   `json:"masterDbUid,omitempty"`
+	EnabledProxies []string `json:"enabledProxies,omitempty"`
 }
 
 type ProxyStatus struct {
-	// TODO(sgotti) register current active proxies status. Useful
-	// if in future we want to wait for all proxies having converged
-	// before enabling new master
 }
 
 type Proxy struct {

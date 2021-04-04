@@ -38,7 +38,7 @@ require (
 replace (
 	github.com/coreos/prometheus-operator => github.com/gravitational/prometheus-operator v0.35.2
 	github.com/sirupsen/logrus => github.com/gravitational/logrus v1.4.3
-	github.com/sorintlab/stolon => github.com/gravitational/stolon v0.2.1-0.20170530142652-8420cb13a635
+	github.com/sorintlab/stolon => github.com/gravitational/stolon v0.2.1-0.20170829081557-fec51408a83e
 	k8s.io/api => k8s.io/api v0.15.12
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.15.12
 	k8s.io/apimachinery => k8s.io/apimachinery v0.15.12

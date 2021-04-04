@@ -362,6 +362,8 @@ github.com/gravitational/rigging v0.0.0-20200803191640-2a0fba75cac5 h1:82Zv0VS79
 github.com/gravitational/rigging v0.0.0-20200803191640-2a0fba75cac5/go.mod h1:RO+VKwEiFeCw+gHcmFaxET1trGNCImNc11Lsk7/S6bQ=
 github.com/gravitational/stolon v0.2.1-0.20170530142652-8420cb13a635 h1:Kz9Q5yPgvFw5ePebJpZeLg17g8+hwj3jUSLGsPeWEaI=
 github.com/gravitational/stolon v0.2.1-0.20170530142652-8420cb13a635/go.mod h1:8lanF1QcJ3f4mtQQt7SXesRJyn/FC58+PExaFEWTbIw=
+github.com/gravitational/stolon v0.2.1-0.20170829081557-fec51408a83e h1:GbFVNJFjDiqRslPWdWgzT20DPluT3JdBs+/hJ3y55D0=
+github.com/gravitational/stolon v0.2.1-0.20170829081557-fec51408a83e/go.mod h1:8lanF1QcJ3f4mtQQt7SXesRJyn/FC58+PExaFEWTbIw=
 github.com/gravitational/trace v1.1.8 h1:AXawtjes5ERnWXCDzd8UMJbbun55LngAX7aCMbQ+23s=
 github.com/gravitational/trace v1.1.8/go.mod h1:RvdOUHE4SHqR3oXlFFKnGzms8a5dugHygGw1bqDstYI=
 github.com/gregjones/httpcache v0.0.0-20170728041850-787624de3eb7/go.mod h1:FecbI9+v66THATjSRHfNgh1IVFe/9kFxbXtjV0ctIMA=
