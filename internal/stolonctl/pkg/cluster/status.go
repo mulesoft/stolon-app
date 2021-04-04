@@ -24,10 +24,10 @@ import (
 	"github.com/gravitational/stolon-app/internal/stolonctl/pkg/kubernetes"
 
 	"github.com/gravitational/rigging"
-	"github.com/gravitational/stolon/pkg/cluster"
-	"github.com/gravitational/stolon/pkg/store"
 	"github.com/gravitational/trace"
-	"k8s.io/api/core/v1"
+	"github.com/sorintlab/stolon/pkg/cluster"
+	"github.com/sorintlab/stolon/pkg/store"
+	v1 "k8s.io/api/core/v1"
 )
 
 // getPods returns list of keeper and sentinel pods
@@ -76,13 +76,13 @@ func GetStatus(config Config) (*Status, error) {
 		podsStatus = append(podsStatus, podStatus)
 	}
 
-	etcdStore, err := store.NewStore(
-		store.Backend("etcd"),
-		config.EtcdEndpoints,
-		config.EtcdCertFile,
-		config.EtcdKeyFile,
-		config.EtcdCAFile,
-	)
+	etcdStore, err := store.NewStore(store.Config{
+		Backend:   store.ETCD,
+		Endpoints: config.EtcdEndpoints,
+		CertFile:  config.EtcdCertFile,
+		KeyFile:   config.EtcdKeyFile,
+		CAFile:    config.EtcdCAFile,
+	})
 	if err != nil {
 		return nil, trace.Wrap(err, "error connecting to etcd")
 	}
@@ -107,11 +107,11 @@ type Status struct {
 
 func (s *Status) getMasterStatus() (*crd.MasterStatus, error) {
 	for _, pod := range s.PodsStatus {
-		if master := s.ClusterData.KeepersState[s.ClusterData.ClusterView.Master]; master != nil {
-			if pod.PodIP == master.ListenAddress {
+		if master := s.ClusterData.DBs[s.ClusterData.Cluster.Status.Master]; master != nil {
+			if pod.PodIP == master.Status.ListenAddress {
 				return &crd.MasterStatus{
 					PodName: pod.Name,
-					Healthy: master.Healthy,
+					Healthy: master.Status.Healthy,
 					HostIP:  pod.HostIP,
 					PodIP:   pod.PodIP,
 				}, nil

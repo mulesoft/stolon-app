@@ -27,8 +27,8 @@ import (
 	"github.com/gravitational/stolon-app/internal/stolonctl/pkg/cluster"
 	"github.com/gravitational/stolon-app/internal/stolonctl/pkg/defaults"
 
-	"github.com/gravitational/stolon/common"
 	"github.com/gravitational/trace"
+	"github.com/sorintlab/stolon/common"
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -108,17 +108,17 @@ func printClusterStatus(status *cluster.Status, output io.Writer) {
 
 	for _, pod := range status.PodsStatus {
 		var keeperID string
-		for _, keeperState := range status.ClusterData.KeepersState {
-			if pod.PodIP == keeperState.ListenAddress {
-				keeperID = keeperState.ID
+		for _, keeperState := range status.ClusterData.DBs {
+			if pod.PodIP == keeperState.Status.ListenAddress {
+				keeperID = keeperState.UID
 			}
 		}
-		if keeperID != "" && status.ClusterData.KeepersState[keeperID].PGState != nil {
+		if keeperID != "" && status.ClusterData.DBs[keeperID].Spec != nil {
 			fmt.Fprintf(w, "%s\t%v/%v\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", pod.Name,
 				pod.ReadyContainers, pod.TotalContainers, pod.Status, pod.PodIP, pod.HostIP,
 				translateTimestamp(*pod.CreationTimestamp), keeperID,
-				translateBoolean(status.ClusterData.KeepersState[keeperID].Healthy),
-				status.ClusterData.KeepersState[keeperID].PGState.Role.String())
+				translateBoolean(status.ClusterData.DBs[keeperID].Status.Healthy),
+				status.ClusterData.DBs[keeperID].Spec.Role)
 		} else {
 			fmt.Fprintf(w, "%s\t%v/%v\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", pod.Name,
 				pod.ReadyContainers, pod.TotalContainers, pod.Status, pod.PodIP, pod.HostIP,
@@ -213,15 +213,15 @@ func collectMetricsFromStatus(status *cluster.Status) (result statusMetrics) {
 	var masterID string
 	for _, pod := range status.PodsStatus {
 		var keeperID string
-		for _, keeperState := range status.ClusterData.KeepersState {
-			if pod.PodIP == keeperState.ListenAddress {
-				keeperID = keeperState.ID
+		for _, keeperState := range status.ClusterData.DBs {
+			if pod.PodIP == keeperState.Spec.KeeperUID {
+				keeperID = keeperState.UID
 			}
 		}
-		if keeperID != "" && status.ClusterData.KeepersState[keeperID].PGState != nil {
+		if keeperID != "" && status.ClusterData.DBs[keeperID].Spec != nil {
 			result.runningPods++
-			if status.ClusterData.KeepersState[keeperID].PGState.Role == common.MasterRole {
-				if status.ClusterData.KeepersState[keeperID].Healthy {
+			if status.ClusterData.DBs[keeperID].Spec.Role == common.RoleMaster {
+				if status.ClusterData.DBs[keeperID].Status.Healthy {
 					result.masterHealthy = true
 					masterID = keeperID
 				}
@@ -231,12 +231,12 @@ func collectMetricsFromStatus(status *cluster.Status) (result statusMetrics) {
 				// count amount of running standby nodes
 				result.runningStandbys++
 				if masterID != "" {
-					if math.Abs(float64(status.ClusterData.KeepersState[masterID].PGState.XLogPos-status.ClusterData.KeepersState[keeperID].PGState.XLogPos)) > float64(lagThreshold) {
+					if math.Abs(float64(status.ClusterData.DBs[masterID].Status.XLogPos-status.ClusterData.DBs[keeperID].Status.XLogPos)) > float64(lagThreshold) {
 						result.replicationLag = true
 					}
 				}
 			}
-			if status.ClusterData.KeepersState[keeperID].Healthy {
+			if status.ClusterData.DBs[keeperID].Status.Healthy {
 				// count amount of running healthy nodes
 				result.healthyNodes++
 			}

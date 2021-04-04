@@ -27,7 +27,7 @@ import (
 	"github.com/gravitational/stolon-app/internal/stolonctl/pkg/crd"
 	"github.com/gravitational/stolon-app/internal/stolonctl/pkg/kubernetes"
 	"github.com/gravitational/stolon-app/internal/stolonctl/pkg/utils"
-	"github.com/gravitational/stolon/common"
+	"github.com/sorintlab/stolon/common"
 
 	"github.com/gravitational/trace"
 	log "github.com/sirupsen/logrus"
@@ -304,9 +304,9 @@ func (u *upgradeControl) upgradePostgresSchemaPhase(ctx context.Context, res *cr
 	standbyNodeNames := make(map[string]string)
 	for _, pod := range res.Spec.ClusterInfo.PodsStatus {
 		if pod.PodIP != res.Spec.ClusterInfo.MasterStatus.PodIP {
-			for _, keeperState := range res.Spec.ClusterInfo.ClusterData.KeepersState {
-				if pod.PodIP != "" && pod.PodIP == keeperState.ListenAddress {
-					standbyNodeNames[keeperState.ID] = pod.HostIP
+			for _, keeperState := range res.Spec.ClusterInfo.ClusterData.DBs {
+				if pod.PodIP != "" && pod.PodIP == keeperState.Status.ListenAddress {
+					standbyNodeNames[keeperState.UID] = pod.HostIP
 				}
 			}
 		}
