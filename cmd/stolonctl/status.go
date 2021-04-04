@@ -24,6 +24,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/gravitational/stolon-app/internal/stolonctl/pkg/cluster"
 	"github.com/gravitational/stolon-app/internal/stolonctl/pkg/defaults"
 
@@ -242,6 +243,7 @@ func collectMetricsFromStatus(status *cluster.Status) (result statusMetrics) {
 			}
 		}
 	}
+	spew.Dump(result)
 	return result
 }
 
