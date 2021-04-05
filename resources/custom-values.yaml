@@ -13,16 +13,21 @@ keeper:
 clusterSpec:
   requestTimeout: "60s"
   failInterval: "60s"
-  maxStandbyLag: 16
+  deadKeeperRemovalInterval: "48h"
+  maxStandbyLag: 16777216
   usePgrewind: true
   maxStandbys: 5
-
-pgParameters:
-  max_connections: 500
-  idle_in_transaction_session_timeout: "10min"
-  log_destination: "stderr"
-  log_min_messages: "INFO"
-  log_checkpoints: "on"
-  log_min_duration_statement: "1s"
-  log_lock_waits: "on"
-  log_line_prefix: '%m [%p]: [%l-1] user=%u,db=%d '
+  initMode: "new"
+  pgHBA:
+    - hostssl all all 0.0.0.0/0 md5
+    - hostssl all all ::0/0 md5
+  pgParameters:
+    idle_in_transaction_session_timeout: "10min"
+    log_destination: "stderr"
+    log_min_messages: "INFO"
+    log_checkpoints: "on"
+    log_min_duration_statement: "1s"
+    log_lock_waits: "on"
+    log_line_prefix: '%m [%p]: [%l-1] user=%u,db=%d '
+    wal_keep_segments: "128"
+    max_connections: "500"
