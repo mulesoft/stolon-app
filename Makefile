@@ -36,8 +36,7 @@ ifneq ($(STATEDIR),)
 	EXTRA_GRAVITY_OPTIONS +=  --state-dir=$(STATEDIR)
 endif
 
-CONTAINERS := stolon-bootstrap:$(VERSION) \
-			  stolon-uninstall:$(VERSION) \
+CONTAINERS := stolon-uninstall:$(VERSION) \
 			  stolon-hook:$(VERSION) \
 			  stolon:$(VERSION) \
 			  stolon-telegraf:$(VERSION) \
@@ -46,8 +45,7 @@ CONTAINERS := stolon-bootstrap:$(VERSION) \
 			  stolon-etcd:$(VERSION) \
 			  stolon-common:$(VERSION)
 
-IMPORT_IMAGE_OPTIONS := --set-image=stolon-bootstrap:$(VERSION) \
-	--set-image=stolon-uninstall:$(VERSION) \
+IMPORT_IMAGE_OPTIONS := --set-image=stolon-uninstall:$(VERSION) \
 	--set-image=stolon-hook:$(VERSION) \
 	--set-image=stolon:$(VERSION) \
 	--set-image=stolon-telegraf:$(VERSION) \
@@ -149,13 +147,6 @@ build-app: images $(BUILD_DIR)/resources/app.yaml
 .PHONY: build-gravity-app
 build-gravity-app: images $(BUILD_DIR)/resources/app.yaml
 	$(TELE) build $(TELE_BUILD_APP_OPTIONS) -f -o $(BUILD_DIR)/helm-application.tar $(BUILD_DIR)/resources/charts/stolon
-
-.PHONY: build-stolonboot
-build-stolonboot: $(BUILD_DIR)
-	docker run $(DOCKERFLAGS) $(BUILDBOX) make build-stolonboot-docker
-
-build-stolonboot-docker:
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -a -installsuffix cgo -o build/stolonboot cmd/stolonboot/*.go
 
 .PHONY: build-stolonctl
 build-stolonctl: $(BUILD_DIR)

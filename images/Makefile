@@ -3,7 +3,6 @@ GOLANGCI_LINT_VER ?= 1.30.0
 .PHONY: all
 all: images
 
-BOOTSTRAP_TAG := stolon-bootstrap:$(VERSION)
 UNINSTALL_TAG := stolon-uninstall:$(VERSION)
 HOOK_TAG := stolon-hook:$(VERSION)
 STOLON_TAG := stolon:$(VERSION)
@@ -15,7 +14,6 @@ COMMON_TAG := stolon-common:$(VERSION)
 
 .PHONY: images
 images:	buildbox \
-		bootstrap \
 		uninstall \
 		stolon \
 		telegraf \
@@ -24,7 +22,6 @@ images:	buildbox \
 		pgbouncer \
 		etcd \
 		common
-	docker tag $(BOOTSTRAP_TAG) stolon-bootstrap:latest
 	docker tag $(UNINSTALL_TAG) stolon-uninstall:latest
 	docker tag $(STOLON_TAG) stolon:latest
 	docker tag $(HOOK_TAG) stolon-hook:latest
@@ -37,14 +34,6 @@ images:	buildbox \
 .PHONY: buildbox
 buildbox:
 	docker build --pull --build-arg GOLANGCI_LINT_VER=$(GOLANGCI_LINT_VER) -t stolon-app-buildbox:latest $(PWD)/buildbox
-
-STOLONBOOT_BINS := bootstrap/bin
-.PHONY: bootstrap
-bootstrap:
-	cd ../ && make build-stolonboot
-	mkdir -p $(STOLONBOOT_BINS)
-	cp ../build/stolonboot $(STOLONBOOT_BINS)/stolonboot
-	docker build --pull -t $(BOOTSTRAP_TAG) $(PWD)/bootstrap
 
 STOLONCTL_BINS := stolonctl/bin
 .PHONY: stolonctl
@@ -78,5 +67,4 @@ publish-stolonctl: stolonctl
 
 .PHONY: clean
 clean:
-	-rm -rf $(STOLONBOOT_BINS)
 	-rm -rf $(STOLONCTL_BINS)
