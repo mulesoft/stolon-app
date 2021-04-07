@@ -3,6 +3,7 @@
 set -e
 
 export STORE_ENDPOINTS=${STORE_ENDPOINTS:-https://127.0.0.1:2379}
+export LOG_LEVEL=${LOG_LEVEL:-info}
 
 function die() {
 	echo "ERROR: $*" >&2
@@ -15,20 +16,9 @@ function announce_step() {
 	echo
 }
 
-function setup_cluster_ca() {
-	announce_step 'Setup cluster CA'
+function create_pg_pass() {
+	announce_step 'Create .pgpass file'
 
-	if [ -f /usr/local/bin/kubectl ]; then
-		mkdir -p /usr/share/ca-certificates/extra
-		kubectl get secret cluster-ca
-		if [ $? -eq 0 ]; then
-			kubectl get secret cluster-ca -o yaml | grep ca.pem | awk '{print $2}' | base64 -d >/usr/local/share/ca-certificates/cluster.crt
-			update-ca-certificates
-		fi
-	fi
-}
-
-function _create_pg_pass() {
 	local host=${1:-$STOLON_POSTGRES_SERVICE_HOST}
 	local port=${2:-$STOLON_POSTGRES_SERVICE_PORT}
 	local database=${3:-"postgres"}
@@ -42,10 +32,13 @@ function _create_pg_pass() {
 function launch_keeper() {
 	announce_step 'Launching stolon keeper'
 
+	export STKEEPER_LOG_LEVEL=$LOG_LEVEL
 	export STKEEPER_STORE_ENDPOINTS=$STORE_ENDPOINTS
 	export STKEEPER_LISTEN_ADDRESS=$POD_IP
 	export STKEEPER_PG_LISTEN_ADDRESS=$POD_IP
 	export STKEEPER_DATA_DIR=${STKEEPER_DATA_DIR:-/stolon-data}
+
+	create_pg_pass
 
 	stolon-keeper --data-dir $STKEEPER_DATA_DIR
 }
@@ -53,6 +46,7 @@ function launch_keeper() {
 function launch_sentinel() {
 	announce_step 'Launching stolon sentinel'
 
+	export STSENTINEL_LOG_LEVEL=$LOG_LEVEL
 	export STSENTINEL_STORE_ENDPOINTS=$STORE_ENDPOINTS
 	export STSENTINEL_LISTEN_ADDRESS=$POD_IP
 	stolon-sentinel
@@ -61,6 +55,7 @@ function launch_sentinel() {
 function launch_proxy() {
 	announce_step 'Launching stolon proxy'
 
+	export STPROXY_LOG_LEVEL=$LOG_LEVEL
 	export STPROXY_STORE_ENDPOINTS=$STORE_ENDPOINTS
 	export STPROXY_LISTEN_ADDRESS=$POD_IP
 	stolon-proxy
@@ -69,10 +64,10 @@ function launch_proxy() {
 function main() {
 	announce_step 'Start'
 
-	announce_step 'Dump environment variables'
-	env
-
-	setup_cluster_ca
+	if [[ "${LOG_LEVEL}" == "debug" ]]; then
+		announce_step 'Dump environment variables'
+		env
+	fi
 
 	announce_step 'Select which component to start'
 	if [[ "${KEEPER}" == "true" ]]; then

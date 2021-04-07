@@ -1,7 +1,7 @@
-ARG PGVERSION=11
+ARG PGVERSION=12
 # base build image
 FROM quay.io/gravitational/debian-venti:go1.15.10-buster AS builder
-ARG STOLON_REVISION=fec51408a83e6909c51e62ff54127d89748148fc
+ARG STOLON_REVISION=920fe4b83c158a6fe496dd6427a3715b84c0b4e2
 
 ENV REPO_PATH=/gopath/src/github.com/sorintlab/stolon
 RUN set -eux; \
@@ -52,9 +52,9 @@ EXPOSE 5432
 COPY --from=builder /gopath/src/github.com/sorintlab/stolon/bin/ /usr/local/bin
 COPY --from=downloader /pgmetrics /usr/local/bin
 
-RUN chmod +x /usr/local/bin/stolon-keeper /usr/local/bin/stolon-sentinel /usr/local/bin/stolon-proxy
+RUN chmod +x /usr/local/bin/stolon-keeper /usr/local/bin/stolon-sentinel /usr/local/bin/stolon-proxy /usr/local/bin/stolonctl
 
-EXPOSE 5431 5432 6431
+EXPOSE 5432
 
 USER stolon
 
