@@ -7,7 +7,7 @@ ENV REPO_PATH=/gopath/src/github.com/sorintlab/stolon
 RUN set -eux; \
     apt-get update && \
     apt-get install -qq -y git && \
-    git clone https://github.com/gravitational/stolon.git $REPO_PATH && \
+    git clone https://github.com/sorintlab/stolon.git $REPO_PATH && \
     cd $REPO_PATH && git checkout $STOLON_REVISION
 
 WORKDIR $REPO_PATH

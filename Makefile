@@ -40,7 +40,6 @@ CONTAINERS := stolon-uninstall:$(VERSION) \
 			  stolon-hook:$(VERSION) \
 			  stolon:$(VERSION) \
 			  stolon-telegraf:$(VERSION) \
-			  stolonctl:$(VERSION) \
 			  stolon-pgbouncer:$(VERSION) \
 			  stolon-etcd:$(VERSION) \
 			  stolon-common:$(VERSION)
@@ -49,7 +48,6 @@ IMPORT_IMAGE_OPTIONS := --set-image=stolon-uninstall:$(VERSION) \
 	--set-image=stolon-hook:$(VERSION) \
 	--set-image=stolon:$(VERSION) \
 	--set-image=stolon-telegraf:$(VERSION) \
-	--set-image=stolonctl:$(VERSION) \
 	--set-image=stolon-pgbouncer:$(VERSION) \
 	--set-image=stolon-etcd:$(VERSION) \
 	--set-image=stolon-common:$(VERSION)

@@ -18,7 +18,6 @@ images:	buildbox \
 		stolon \
 		telegraf \
 		hook \
-		stolonctl \
 		pgbouncer \
 		etcd \
 		common
