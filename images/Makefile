@@ -25,7 +25,6 @@ images:	buildbox \
 	docker tag $(STOLON_TAG) stolon:latest
 	docker tag $(HOOK_TAG) stolon-hook:latest
 	docker tag $(TELEGRAF_TAG) stolon-telegraf:latest
-	docker tag $(STOLONCTL_TAG) stolonctl:latest
 	docker tag $(PGBOUNCER_TAG) stolon-pgbouncer:latest
 	docker tag $(ETCD_TAG) stolon-etcd:latest
 	docker tag $(COMMON_TAG) stolon-common:latest

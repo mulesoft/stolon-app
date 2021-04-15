@@ -106,10 +106,10 @@ nodeProfiles:
 hooks:
   install:
     job: file://install.yaml
-  postInstall:
-    job: file://postInstall.yaml
-  preUpdate:
-    job: file://preUpdateHook.yaml
+  # postInstall:
+  #   job: file://postInstall.yaml
+  # preUpdate:
+  #   job: file://preUpdateHook.yaml
   update:
     job: |
       apiVersion: batch/v1
@@ -128,8 +128,8 @@ hooks:
             containers:
               - name: hook
                 image: stolon-hook:latest
-  postUpdate:
-    job: file://postUpdate.yaml
+  # postUpdate:
+  #   job: file://postUpdate.yaml
   rollback:
     job: |
       apiVersion: batch/v1
