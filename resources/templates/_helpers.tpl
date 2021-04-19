@@ -48,3 +48,9 @@ Create chart name and version as used by the chart label.
     {{- template "stolon.fullname" . -}}
 {{- end -}}
 {{- end -}}
+
+{{/* HostPath for keeper data directory */}}
+{{/* /var/lib/data/stolon is the default value for backward compatibility */}}
+{{- define "stolon.keeperDataPath" -}}
+{{- if .Values.keeper.dataHostPath -}}{{ .Values.keeper.dataHostPath }}{{- else -}}/var/lib/data/stolon{{- end -}}
+{{- end -}}

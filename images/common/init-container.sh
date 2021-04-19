@@ -24,12 +24,6 @@ then
 	chmod 0600 /home/stolon/secrets/cluster-ca/ca.pem
 fi
 
-if [ -d /var/state ]
-then
-    cp -R /var/state /home/stolon/secrets/etcd
-    chown -R stolon:stolon /home/stolon/secrets/etcd
-fi
-
 if [ -d /stolon-data ]; then
   if [[ ! -f /stolon-data/dummy.file ]]; then
       fallocate -l 300MB /stolon-data/dummy.file

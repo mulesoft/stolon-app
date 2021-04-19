@@ -1,11 +1,20 @@
+registry: ""
+# tag for images generated within stolon application repository
+tag: latest
+
 # clusterName:
 image:
   repository: sorintlab/stolon
-  tag: v0.16.0-pg10
+  tag: v0.16.0-pg12
   pullPolicy: IfNotPresent
   ## Add secrets manually via kubectl on kubernetes cluster and reference here
   # pullSecrets:
   #   - name: "myKubernetesSecret"
+
+# image with the common bash entrypoints
+commonImage:
+  repository: stolon-common
+  pullPolicy: Always
 
 # used by create-cluster-job when store.backend is etcd
 etcdImage:
@@ -103,11 +112,9 @@ clusterSpec: {}
 ##
 tls:
   enabled: false
-  rootCa: |-
-  serverCrt: |-
-  serverKey: |-
-
-  # existingSecret: name-of-existing-secret-to-postgresql
+  caSecret: cluster-ca
+  defaultSslSecret: cluster-default-ssl
+  existingSecret: true
 
 keeper:
   uid_prefix: "keeper"
@@ -127,8 +134,16 @@ keeper:
   nodeSelector: {}
   affinity: {}
   tolerations: []
-  volumes: []
-  volumeMounts: []
+  volumes:
+    - name: stolon-secrets
+      emptyDir: {}
+  volumeMounts:
+    - name: stolon-secrets
+      mountPath: /home/stolon/secrets
+    - name: cluster-ca
+      mountPath: /etc/ssl/cluster-ca
+    - name: cluster-default-ssl
+      mountPath: /etc/ssl/cluster-default-ssl
   hooks:
     failKeeper:
       enabled: false
@@ -138,6 +153,7 @@ keeper:
   extraEnv: []
   #  - name: STKEEPER_LOG_LEVEL
   #    value: "info"
+  dataHostPath: /var/lib/data/stolon-pg12
 
 proxy:
   replicaCount: 2

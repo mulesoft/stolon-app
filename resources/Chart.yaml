@@ -8,6 +8,7 @@ icon: https://i.imgur.com/tIW8sAW.png
 sources:
   - https://github.com/sorintlab/stolon
   - https://github.com/iomedhealth/helm_stolon
+  - https://github.com/mulesoft/stolon-app
 deprecated: false
 engine: gotpl
 maintainers:

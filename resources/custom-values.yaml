@@ -1,3 +1,7 @@
+image:
+  tag: v0.16.0-pg12
+  pullPolicy: Always
+
 superuserPassword: passw0rd
 replicationPassword: passw0rd
 
