@@ -18,10 +18,11 @@ spec:
   activeDeadlineSeconds: 600
   template:
     metadata:
-      app: {{ template "stolon.fullname" . }}
-      release: {{ .Release.Name }}
-      name: {{ template "stolon.fullname" . }}-bootstrap-auth-function
-      stolon-cluster: {{ template "stolon.clusterName" . }}
+      labels:
+        app: {{ template "stolon.fullname" . }}
+        release: {{ .Release.Name }}
+        name: {{ template "stolon.fullname" . }}-bootstrap-auth-function
+        stolon-cluster: {{ template "stolon.clusterName" . }}
     spec:
       restartPolicy: OnFailure
       serviceAccountName: {{ template "stolon.serviceAccountName" . }}

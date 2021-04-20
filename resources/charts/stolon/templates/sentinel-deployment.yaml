@@ -93,8 +93,8 @@ spec:
             {{- end }}
             - name: STSENTINEL_INITIAL_CLUSTER_SPEC
               value: "{{ .Values.sentinel.configMountPath }}/cluster-config.json"
-            - name: STSENTINEL_DEBUG
-              value: {{ .Values.debug | quote}}
+            - name: STSENTINEL_LOG_LEVEL
+              value: {{ .Values.log_level | quote}}
           ports:
           {{- range $key, $value := .Values.ports }}
             - name: {{ $key }}

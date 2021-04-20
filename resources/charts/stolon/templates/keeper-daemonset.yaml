@@ -86,9 +86,12 @@ spec:
             - name: STPROXY_CLUSTER_NAME
               value: {{ template "stolon.clusterName" . }}
             - name: STPROXY_STORE_BACKEND
-              value: {{ .Values.store.backend | quote }}
-            {{- if not (empty .Values.store.endpoints) }}
-            - name: STORE_ENDPOINTS
+              value: {{ .Values.store.backend | quote}}
+            {{- if eq .Values.store.backend "kubernetes" }}
+            - name: STPROXY_KUBE_RESOURCE_KIND
+              value: {{ .Values.store.kubeResourceKind  | quote}}
+            {{- else }}
+            - name: STPROXY_STORE_ENDPOINTS
               value: {{ .Values.store.endpoints | quote}}
             {{- end }}
             {{- if not (empty .Values.store.caFile) }}
@@ -103,8 +106,8 @@ spec:
             - name: STPROXY_STORE_KEY
               value: {{ .Values.store.key | quote }}
             {{- end }}
-            - name: STPROXY_DEBUG
-              value: {{ .Values.debug | quote }}
+            - name: STPROXY_LOG_LEVEL
+              value: {{ .Values.log_level | quote }}
             - name: STPROXY_PORT
               value: {{ .Values.proxy.containerPort | quote }}
             - name: POD_IP
@@ -133,9 +136,12 @@ spec:
               value: {{ template "stolon.clusterName" . }}
             - name: STKEEPER_STORE_BACKEND
               value: {{ .Values.store.backend | quote }}
-            {{- if not (empty .Values.store.endpoints) }}
-            - name: STORE_ENDPOINTS
-              value: {{ .Values.store.endpoints | quote}}
+            {{- if eq .Values.store.backend "kubernetes" }}
+            - name: STKEEPER_KUBE_RESOURCE_KIND
+              value: {{ .Values.store.kubeResourceKind  | quote }}
+            {{- else }}
+            - name: STKEEPER_STORE_ENDPOINTS
+              value: {{ .Values.store.endpoints | quote }}
             {{- end }}
             {{- if not (empty .Values.store.caFile) }}
             - name: STKEEPER_STORE_CA_FILE
@@ -171,27 +177,18 @@ spec:
                   name: {{ template "stolon.fullname" . }}
                   {{- end }}
                   key: "pg_repl_password"
-            - name: STKEEPER_DEBUG
-              value: {{ .Values.debug | quote }}
+            - name: STKEEPER_LOG_LEVEL
+              value: {{ .Values.log_level | quote }}
             - name: STKEEPER_PG_BIN_PATH
               value: {{ .Values.keeper.pg_bin_path }}
             - name: STKEEPER_PG_PORT
               value: {{ .Values.ports.stolon.containerPort | quote }}
-            - name: STKEEPER_PG_SSL_REPLICATION
-              value: "true"
             - name: STKEEPER_PG_SSL_CERT_FILE
               value: "/home/stolon/secrets/cluster-default/default-server-with-chain.pem"
             - name: STKEEPER_PG_SSL_KEY_FILE
               value: "/home/stolon/secrets/cluster-default/default-server-key.pem"
             - name: STKEEPER_PG_SSL_CA_FILE
               value: "/home/stolon/secrets/cluster-ca/ca.pem"
-            - name: STKEEPER_PG_SSL_CIPHERS
-              value: >-
-                ECDH+ECDSA+AESGCM:EECDH+aRSA+AESGCM:EECDH+ECDSA+SHA256:
-                EECDH+aRSA+SHA256:EECDH+ECDSA+SHA384:EECDH+ECDSA+SHA256:
-                EECDH+aRSA+SHA384:EDH+aRSA+AESGCM:EDH+aRSA+SHA256:EDH+aRSA:
-                EECDH:!aNULL:!eNULL:!MEDIUM:!LOW:!3DES:!MD5:!EXP:!PSK:!SRP:
-                !DSS:!RC4:!SEED
           ports:
             {{- range $key, $value := .Values.ports }}
             - name: {{ $key }}
