@@ -44,23 +44,13 @@ serviceAccount:
   # The name of the ServiceAccount to use. If not set and create is true, a name is generated using the fullname template
   name:
 
-superuserSecret:
-  name: ""
-  usernameKey: pg_su_username
-  passwordKey: pg_su_password
-
-replicationSecret:
-  name: ""
-  usernameKey: pg_repl_username
-  passwordKey: pg_repl_password
-
 superuserUsername: "stolon"
-## password for the superuser (REQUIRED if superuserSecret and superuserPasswordFile are not set)
+## password for the superuser
 superuserPassword:
 superuserForcePassword: false
 
 replicationUsername: "repluser"
-## password for the replication user (REQUIRED if replicationSecret and replicationPasswordFile are not set)
+## password for the replication user
 replicationPassword:
 replicationForcePassword: false
 

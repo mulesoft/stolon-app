@@ -85,41 +85,26 @@ spec:
               value: {{ .Values.store.endpoints | quote }}
             {{- end }}
             - name: STKEEPER_PG_REPL_USERNAME
-{{ if not (empty .Values.replicationSecret.name) }}
+              value: {{ .Values.replicationUsername | quote}}
+{{ if empty .Values.replicationPassword }}
+            - name: STKEEPER_PG_REPL_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.replicationSecret.name }}
-                  key: {{ .Values.replicationSecret.usernameKey }}
+                  name: {{ template "stolon.fullname" . }}
+                  key: "pg_repl_password"
 {{ else }}
-              value: {{ .Values.replicationUsername | quote}}
+              value: {{ .Values.replicationPassword | quote}}
 {{ end }}
-            - name: STKEEPER_PG_REPL_PASSWORD
-{{ if not (empty .Values.replicationSecret.name) }}
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.replicationSecret.name }}
-                  key: {{ .Values.replicationSecret.passwordKey }}
-{{ else }}
-              value: {{ .Values.replicationUsername | quote}}
-{{ end }}
-            - name: STKEEPER_PG_REPL_PASSWORD
             - name: STKEEPER_PG_SU_USERNAME
-{{ if not (empty .Values.superuserSecret.name) }}
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.superuserSecret.name }}
-                  key: {{ .Values.superuserSecret.usernameKey }}
-{{ else }}
-              value: {{ .Values.superuserUsername | quote }}
-{{ end }}
+              value: {{ .Values.superuserUsername | quote}}
+{{ if empty .Values.superuserPassword }}
             - name: STKEEPER_PG_SU_PASSWORD
-{{ if not (empty .Values.superuserSecret.name) }}
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.superuserSecret.name }}
-                  key: {{ .Values.superuserSecret.passwordKey }}
+                  name: {{ template "stolon.fullname" . }}
+                  key: "password"
 {{ else }}
-              value: {{ .Values.superuserPassword | quote }}
+              value: {{ .Values.superuserPassword | quote}}
 {{ end }}
             - name: STKEEPER_METRICS_LISTEN_ADDRESS
               value: "0.0.0.0:{{ .Values.ports.metrics.containerPort }}"
