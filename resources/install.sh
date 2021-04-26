@@ -9,9 +9,8 @@ then
 fi
 
 set +e
-/usr/local/bin/helm install /var/lib/gravity/resources/charts/stolon \
-    --values /var/lib/gravity/resources/custom-values.yaml $EXTRA_PARAMS \
-    --name stolon
+/usr/local/bin/helm3 install stolon /var/lib/gravity/resources \
+    --values /var/lib/gravity/resources/custom-values.yaml $EXTRA_PARAMS
 
 set -e
 

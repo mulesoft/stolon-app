@@ -20,3 +20,10 @@ spec:
           command:
             - /bin/sh
             - /var/lib/gravity/resources/install.sh
+          volumeMounts:
+            - name: helm3-bin
+              mountPath: /usr/local/bin/helm3
+      volumes:
+        - name: helm3-bin
+          hostPath:
+            path: /usr/bin/helm3

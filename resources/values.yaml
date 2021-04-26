@@ -4,9 +4,8 @@ tag: latest
 
 # clusterName:
 image:
-  repository: sorintlab/stolon
-  tag: v0.16.0-pg12
-  pullPolicy: IfNotPresent
+  repository: stolon
+  pullPolicy: Always
   ## Add secrets manually via kubectl on kubernetes cluster and reference here
   # pullSecrets:
   #   - name: "myKubernetesSecret"
@@ -22,11 +21,7 @@ etcdImage:
   tag: 2.3.7
   pullPolicy: IfNotPresent
 
-debug: false
-
-# Enable the creation of a shm volume
-shmVolume:
-  enabled: false
+logLevel: info
 
 persistence:
   enabled: true
@@ -59,17 +54,15 @@ replicationSecret:
   usernameKey: pg_repl_username
   passwordKey: pg_repl_password
 
-superuserPasswordFile:
-
 superuserUsername: "stolon"
 ## password for the superuser (REQUIRED if superuserSecret and superuserPasswordFile are not set)
 superuserPassword:
-
-replicationPasswordFile:
+superuserForcePassword: false
 
 replicationUsername: "repluser"
 ## password for the replication user (REQUIRED if replicationSecret and replicationPasswordFile are not set)
 replicationPassword:
+replicationForcePassword: false
 
 ## backend could be one of the following: consul, etcdv2, etcdv3 or kubernetes
 store:
@@ -137,13 +130,7 @@ keeper:
   volumes:
     - name: stolon-secrets
       emptyDir: {}
-  volumeMounts:
-    - name: stolon-secrets
-      mountPath: /home/stolon/secrets
-    - name: cluster-ca
-      mountPath: /etc/ssl/cluster-ca
-    - name: cluster-default-ssl
-      mountPath: /etc/ssl/cluster-default-ssl
+  volumeMounts: []
   hooks:
     failKeeper:
       enabled: false

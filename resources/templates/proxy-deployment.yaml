@@ -36,18 +36,15 @@ spec:
 {{- end }}
       containers:
         - name: {{ .Chart.Name }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: "{{ .Values.registry }}{{ .Values.image.repository }}:{{ .Values.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command:
-            - "/bin/bash"
-            - "-ec"
-            - |
-              exec gosu stolon stolon-proxy
           env:
             - name: POD_NAME
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
+            - name: PROXY
+              value: "true"
             - name: STPROXY_CLUSTER_NAME
               value: {{ template "stolon.clusterName" . }}
             - name: STPROXY_STORE_BACKEND

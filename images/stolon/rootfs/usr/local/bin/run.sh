@@ -2,11 +2,6 @@
 
 set -e
 
-export STORE_ENDPOINTS=${STORE_ENDPOINTS:-127.0.0.1:2379}
-export STSENTINEL_STORE_ENDPOINTS=$STORE_ENDPOINTS
-export STKEEPER_STORE_ENDPOINTS=$STORE_ENDPOINTS
-export STPROXY_STORE_ENDPOINTS=$STORE_ENDPOINTS
-
 function die() {
 	echo "ERROR: $*" >&2
 	exit 1
@@ -16,19 +11,6 @@ function announce_step() {
 	echo
 	echo "===> $*"
 	echo
-}
-
-function setup_cluster_ca() {
-	announce_step 'Setup cluster CA'
-
-	if [ -f /usr/local/bin/kubectl ]; then
-		mkdir -p /usr/share/ca-certificates/extra
-		kubectl get secret cluster-ca
-		if [ $? -eq 0 ]; then
-			kubectl get secret cluster-ca -o yaml | grep ca.pem | awk '{print $2}' | base64 -d >/usr/local/share/ca-certificates/cluster.crt
-			update-ca-certificates
-		fi
-	fi
 }
 
 function _create_pg_pass() {
@@ -70,8 +52,6 @@ function main() {
 
 	announce_step 'Dump environment variables'
 	env
-
-	setup_cluster_ca
 
 	announce_step 'Select which component to start'
 	if [[ "${KEEPER}" == "true" ]]; then

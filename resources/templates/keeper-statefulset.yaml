@@ -58,24 +58,11 @@ spec:
               mountPath: /etc/secrets/cluster-default
       containers:
         - name: {{ .Chart.Name }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: "{{ .Values.registry }}{{ .Values.image.repository }}:{{ .Values.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command:
-            - "/bin/bash"
-            - "-ec"
-            - |
-              # Generate our keeper uid using the pod index
-              IFS='-' read -ra ADDR <<< "$(hostname)"
-              export STKEEPER_UID="{{ .Values.keeper.uid_prefix }}${ADDR[-1]}"
-              export STKEEPER_PG_ADVERTISE_ADDRESS=$POD_IP
-              export STKEEPER_PG_LISTEN_ADDRESS=${STKEEPER_PG_LISTEN_ADDRESS:-$POD_IP}
-              export STOLON_DATA=/stolon-data
-              chown stolon:stolon $STOLON_DATA
-              {{- if .Values.shmVolume.enabled }}
-              chmod -R 777 /dev/shm
-              {{- end }}
-              exec gosu stolon stolon-keeper --data-dir $STOLON_DATA
           env:
+            - name: KEEPER
+              value: "true"
             - name: POD_NAME
               valueFrom:
                 fieldRef:
@@ -84,6 +71,8 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
+            - name: STKEEPER_UID
+              value: "{{ .Values.keeper.uid_prefix }}${POD[-1]}"
             - name: STKEEPER_CLUSTER_NAME
               value: {{ template "stolon.clusterName" . }}
             - name: STKEEPER_STORE_BACKEND
@@ -104,14 +93,16 @@ spec:
 {{ else }}
               value: {{ .Values.replicationUsername | quote}}
 {{ end }}
-            - name: STKEEPER_PG_REPL_PASSWORDFILE
+            - name: STKEEPER_PG_REPL_PASSWORD
 {{ if not (empty .Values.replicationSecret.name) }}
-              value: /etc/secrets/stolon-{{ .Values.replicationSecret.name }}/{{ .Values.replicationSecret.passwordKey }}
-{{ else if not (empty .Values.replicationPasswordFile) }}
-              value: {{ .Values.replicationPasswordFile }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.replicationSecret.name }}
+                  key: {{ .Values.replicationSecret.passwordKey }}
 {{ else }}
-              value: "/etc/secrets/stolon/pg_repl_password"
+              value: {{ .Values.replicationUsername | quote}}
 {{ end }}
+            - name: STKEEPER_PG_REPL_PASSWORD
             - name: STKEEPER_PG_SU_USERNAME
 {{ if not (empty .Values.superuserSecret.name) }}
               valueFrom:
@@ -121,18 +112,19 @@ spec:
 {{ else }}
               value: {{ .Values.superuserUsername | quote }}
 {{ end }}
-            - name: STKEEPER_PG_SU_PASSWORDFILE
+            - name: STKEEPER_PG_SU_PASSWORD
 {{ if not (empty .Values.superuserSecret.name) }}
-              value: /etc/secrets/stolon-{{ .Values.superuserSecret.name }}/{{ .Values.superuserSecret.passwordKey }}
-{{ else if not (empty .Values.superuserPasswordFile) }}
-              value: {{ .Values.superuserPasswordFile }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.superuserSecret.name }}
+                  key: {{ .Values.superuserSecret.passwordKey }}
 {{ else }}
-              value: "/etc/secrets/stolon/pg_su_password"
+              value: {{ .Values.superuserPassword | quote }}
 {{ end }}
             - name: STKEEPER_METRICS_LISTEN_ADDRESS
               value: "0.0.0.0:{{ .Values.ports.metrics.containerPort }}"
-            - name: STKEEPER_DEBUG
-              value: {{ .Values.debug | quote}}
+            - name: STKEEPER_LOG_LEVEL
+              value: {{ .Values.logLevel | quote}}
 {{- if .Values.keeper.extraEnv }}
 {{ toYaml .Values.keeper.extraEnv | indent 12 }}
 {{- end }}
@@ -144,30 +136,12 @@ spec:
           resources:
 {{ toYaml .Values.keeper.resources | indent 12 }}
           volumeMounts:
-{{- if .Values.shmVolume.enabled }}
-          - name: dshm
-            mountPath: /dev/shm
-{{- end }}
           - name: data
             mountPath: /stolon-data
 {{- if .Values.tls.enabled }}
-          - name: ca-certs
-            mountPath: /certs/ca
-          - name: default-ssl-certs
-            mountPath: /certs/default
-{{- end }}
-{{ if and (or (empty .Values.superuserSecret.name) (empty .Values.replicationSecret.name)) (or (empty .Values.superuserPasswordFile) (empty .Values.replicationPasswordFile)) }}
           - name: stolon-secrets
-            mountPath: /etc/secrets/stolon
-{{ end }}
-{{ if not (empty .Values.superuserSecret.name) }}
-          - name: stolon-secret-{{ .Values.superuserSecret.name }}
-            mountPath: /etc/secrets/stolon-{{ .Values.superuserSecret.name }}
-{{ end }}
-{{ if and (not (empty .Values.replicationSecret.name)) (not (eq .Values.superuserSecret.name .Values.replicationSecret.name)) }}
-          - name: stolon-secret-{{ .Values.replicationSecret.name }}
-            mountPath: /etc/secrets/stolon-{{ .Values.replicationSecret.name }}
-{{ end }}
+            mountPath: /home/stolon/secrets
+{{- end }}
 {{- range $key, $value := .Values.keeper.volumeMounts }}
           - name: {{ $key }}
 {{ toYaml $value | indent 12 }}
@@ -206,17 +180,12 @@ spec:
 {{ toYaml . | indent 8 }}
 {{- end }}
       volumes:
-{{- if .Values.shmVolume.enabled }}
-        - name: dshm
-          emptyDir:
-            medium: Memory
-{{- end }}
 {{- if .Values.tls.enabled }}
-        - name: ca-certs
+        - name: cluster-ca
           secret:
             defaultMode: 0600
             secretName: {{ .Values.tls.caSecret }}
-        - name: default-ssl-certs
+        - name: cluster-default-ssl
           secret:
             defaultMode: 0600
             secretName: {{ .Values.tls.defaultSslSecret }}
@@ -224,21 +193,6 @@ spec:
         - name: config
           configMap:
             name: {{ template "stolon.fullname" . }}
-{{ if or (empty .Values.superuserSecret.name) (empty .Values.replicationSecret.name) }}
-        - name: stolon-secrets
-          secret:
-            secretName: {{ template "stolon.fullname" . }}
-{{ end }}
-{{ if not (empty .Values.superuserSecret.name) }}
-        - name: stolon-secret-{{ .Values.superuserSecret.name }}
-          secret:
-            secretName: {{ .Values.superuserSecret.name }}
-{{ end }}
-{{ if and (not (empty .Values.replicationSecret.name)) (not (eq .Values.superuserSecret.name .Values.replicationSecret.name)) }}
-        - name: stolon-secret-{{ .Values.replicationSecret.name }}
-          secret:
-            secretName: {{ .Values.replicationSecret.name }}
-{{ end }}
 {{- range $key, $value := .Values.keeper.volumes }}
         - name: {{ $key }}
 {{ toYaml $value | indent 10 }}

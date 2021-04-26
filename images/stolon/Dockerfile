@@ -1,22 +1,18 @@
-ARG PGVERSION=9.6
+ARG PGVERSION=12
 # base build image
-FROM quay.io/gravitational/debian-venti:go1.13.8-buster AS builder
-ARG STOLON_REVISION=6353dbc5542d7243bd2bd5256f0a945fdc1f5c23
+FROM quay.io/gravitational/debian-venti:go1.16.3-buster AS builder
+ARG STOLON_REVISION=v0.16.0
 
-ENV REPO_PATH=/gopath/src/github.com/gravitational/stolon
+ENV REPO_PATH=/stolon
 RUN set -eux; \
     apt-get update && \
     apt-get install -qq -y git && \
-    git clone https://github.com/gravitational/stolon.git $REPO_PATH && \
+    git clone https://github.com/sorintlab/stolon.git $REPO_PATH && \
     cd $REPO_PATH && git checkout $STOLON_REVISION
 
 WORKDIR $REPO_PATH
 
-RUN mkdir -p bin && \
-    CGO_ENABLED=0 go build -a -installsuffix cgo -ldflags '-s' -o bin/stolon-sentinel ${REPO_PATH}/cmd/sentinel && \
-    CGO_ENABLED=0 go build -a -installsuffix cgo -ldflags '-s' -o bin/stolon-proxy ${REPO_PATH}/cmd/proxy && \
-    CGO_ENABLED=0 go build -a -installsuffix cgo -ldflags '-s' -o bin/stolontool ${REPO_PATH}/cmd/stolonctl && \
-    go build -a -installsuffix cgo -ldflags '-s' -o bin/stolon-keeper ${REPO_PATH}/cmd/keeper
+RUN make
 
 FROM quay.io/gravitational/debian-grande:buster AS downloader
 ARG PGMETRICS_VERSION=1.7.0
@@ -49,7 +45,7 @@ RUN apt-get update && \
 
 EXPOSE 5432
 
-COPY --from=builder /gopath/src/github.com/gravitational/stolon/bin/ /usr/local/bin
+COPY --from=builder /stolon/bin/ /usr/local/bin
 COPY --from=downloader /pgmetrics /usr/local/bin
 
 RUN chmod +x /usr/local/bin/stolon-keeper /usr/local/bin/stolon-sentinel /usr/local/bin/stolon-proxy

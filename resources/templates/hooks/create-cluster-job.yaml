@@ -33,7 +33,7 @@ spec:
   {{- end }}
       containers:
         - name: {{ template "stolon.fullname" . }}-create-cluster
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: "{{ .Values.registry }}{{ .Values.image.repository }}:{{ .Values.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command: ["/usr/local/bin/stolonctl"]
           args:

@@ -123,23 +123,23 @@ $(TARBALL):
 	$(GRAVITY) package export $(REPOSITORY)/$(NAME):$(VERSION) $(TARBALL) $(EXTRA_GRAVITY_OPTIONS)
 
 .PHONY: import
-import: images $(BUILD_DIR)/resources/app.yaml
+import: images
 	sed -i "s#gravitational.io/cluster-ssl-app:0.0.0+latest#gravitational.io/cluster-ssl-app:$(CLUSTER_SSL_APP_VERSION)#" resources/app.yaml
-	sed -i "s/tag: latest/tag: $(VERSION)/g" resources/charts/stolon/values.yaml
-	sed -i "s/0.1.0/$(VERSION)/g" resources/charts/stolon/Chart.yaml
+	sed -i "s/tag: latest/tag: $(VERSION)/g" resources/values.yaml
+	sed -i "s/0.1.0/$(VERSION)/g" resources/Chart.yaml
 	$(GRAVITY) app delete --ops-url=$(OPS_URL) $(REPOSITORY)/$(NAME):$(VERSION) --force $(EXTRA_GRAVITY_OPTIONS)
 	$(GRAVITY) app import $(IMPORT_OPTIONS) $(EXTRA_GRAVITY_OPTIONS) .
 	sed -i "s#gravitational.io/cluster-ssl-app:$(CLUSTER_SSL_APP_VERSION)#gravitational.io/cluster-ssl-app:0.0.0+latest#" resources/app.yaml
-	sed -i "s/tag: $(VERSION)/tag: latest/g" resources/charts/stolon/values.yaml
-	sed -i "s/$(VERSION)/0.1.0/g" resources/charts/stolon/Chart.yaml
+	sed -i "s/tag: $(VERSION)/tag: latest/g" resources/values.yaml
+	sed -i "s/$(VERSION)/0.1.0/g" resources/Chart.yaml
 
 # .PHONY because VERSION is dynamic
 .PHONY: $(BUILD_DIR)/resources/app.yaml
 $(BUILD_DIR)/resources/app.yaml: | $(BUILD_DIR)
 	cp --archive resources $(BUILD_DIR)
 	sed -i "s#gravitational.io/cluster-ssl-app:0.0.0+latest#gravitational.io/cluster-ssl-app:$(CLUSTER_SSL_APP_VERSION)#" $(BUILD_DIR)/resources/app.yaml
-	sed -i "s/tag: latest/tag: $(VERSION)/g" $(BUILD_DIR)/resources/charts/stolon/values.yaml
-	sed -i "s/0.1.0/$(VERSION)/g" $(BUILD_DIR)/resources/charts/stolon/Chart.yaml
+	sed -i "s/tag: latest/tag: $(VERSION)/g" $(BUILD_DIR)/resources/values.yaml
+	sed -i "s/0.1.0/$(VERSION)/g" $(BUILD_DIR)/resources/Chart.yaml
 
 .PHONY: build-app
 build-app: images $(BUILD_DIR)/resources/app.yaml
