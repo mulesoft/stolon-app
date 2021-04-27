@@ -15,6 +15,11 @@ commonImage:
   repository: stolon-common
   pullPolicy: Always
 
+# image with pgbouncer application
+pgbouncerImage:
+  repository: stolon-pgbouncer
+  pullPolicy: Always
+
 # used by create-cluster-job when store.backend is etcd
 etcdImage:
   repository: k8s.gcr.io/etcd-amd64
@@ -97,7 +102,6 @@ tls:
   enabled: false
   caSecret: cluster-ca
   defaultSslSecret: cluster-default-ssl
-  existingSecret: true
 
 keeper:
   uid_prefix: "keeper"
@@ -194,3 +198,22 @@ sentinel:
 #  postStartScript.sh: |
 #    #!/bin/bash
 #     echo "Do something."
+
+pgbouncer:
+  replicaCount: 2
+  affinity: {}
+  service:
+    type: ClusterIP
+#    loadBalancerIP: ""
+    ports:
+      pgbouncer:
+        port: 5432
+        targetPort: 6432
+        protocol: TCP
+
+pgbouncerConfig:
+  maxClientConnections: 100
+  serverTLSMode: require
+  serverTLSCertFile: /home/stolon/secrets/pgbouncer.pem
+  serverTLSKeyFile: /home/stolon/secrets/pgbouncer-key.pem
+  authFilePath: /home/stolon/pgbouncer/users.txt

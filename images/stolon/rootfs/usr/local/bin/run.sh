@@ -13,14 +13,15 @@ function announce_step() {
 	echo
 }
 
-function _create_pg_pass() {
-	local host=${1:-$STOLON_POSTGRES_SERVICE_HOST}
-	local port=${2:-$STOLON_POSTGRES_SERVICE_PORT}
-	local database=${3:-"postgres"}
-	local username=${4:-"stolon"}
-	local password=${5}
+function create_pg_pass() {
+	local host=${STOLON_POSTGRES_SERVICE_HOST}
+	local port=${STOLON_POSTGRES_SERVICE_PORT}
+	local database="postgres"
+	local username=${STKEEPER_PG_SU_USERNAME:-"stolon"}
+	local password=${STKEEPER_PG_SU_PASSWORD}
 
 	echo "$host:$port:$database:$username:$password" >~/.pgpass
+	echo "/tmp:$port:$database:$username:$password" >> ~/.pgpass
 	chmod 0600 ~/.pgpass
 }
 
@@ -29,6 +30,7 @@ function launch_keeper() {
 
 	export STKEEPER_LISTEN_ADDRESS=$POD_IP
 	export STKEEPER_PG_LISTEN_ADDRESS=$POD_IP
+	export STKEEPER_UID=${KEEPER_PREFIX_UID}${POD_NAME##*-}
 
 	stolon-keeper --data-dir /stolon-data
 }

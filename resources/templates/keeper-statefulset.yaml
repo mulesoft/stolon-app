@@ -71,8 +71,8 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
-            - name: STKEEPER_UID
-              value: "{{ .Values.keeper.uid_prefix }}${POD[-1]}"
+            - name: KEEPER_PREFIX_UID
+              value: "{{ .Values.keeper.uid_prefix }}"
             - name: STKEEPER_CLUSTER_NAME
               value: {{ template "stolon.clusterName" . }}
             - name: STKEEPER_STORE_BACKEND

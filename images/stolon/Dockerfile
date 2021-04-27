@@ -29,7 +29,7 @@ FROM postgres:$PGVERSION
 ADD rootfs/ /
 
 RUN apt-get update && \
-    apt-get install dumb-init jq -yqq && \
+    apt-get install dumb-init -yqq && \
     apt-get clean && \
     rm -rf \
         /var/lib/apt/lists/* \
@@ -50,7 +50,7 @@ COPY --from=downloader /pgmetrics /usr/local/bin
 
 RUN chmod +x /usr/local/bin/stolon-keeper /usr/local/bin/stolon-sentinel /usr/local/bin/stolon-proxy
 
-EXPOSE 5431 5432 6431
+EXPOSE 5432
 
 USER stolon
 

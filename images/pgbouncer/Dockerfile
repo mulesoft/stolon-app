@@ -1,16 +1,15 @@
-FROM quay.io/gravitational/debian-grande:stretch
+ARG PGVERSION=12
+FROM postgres:$PGVERSION
 
 ENV DEBIAN_FRONTEND=noninteractive \
     TERM=xterm
 
 RUN apt-get update && \
     apt-get install --yes --no-install-recommends \
+        dumb-init \
         gettext \
         hostname \
-        procps \
         pgbouncer \
-        postgresql-common \
-        postgresql-client-9.6 \
         openssl && \
     apt-get clean && \
     rm -rf \

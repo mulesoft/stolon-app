@@ -11,6 +11,7 @@ metadata:
   annotations:
     "helm.sh/hook": post-install
     "helm.sh/hook-delete-policy": before-hook-creation
+    "helm.sh/hook-weight": "0"
 spec:
   template:
     metadata:
@@ -46,5 +47,5 @@ spec:
             - --store-endpoints={{ .Values.store.endpoints }}
             {{- end }}
             - --yes
-            - '{ "initMode": "new", {{- range $key, $value := .Values.clusterSpec }} {{ $key | quote }}: {{ if typeIs "string" $value }}{{ $value | quote }} {{- else if typeIs "int" $value }}{{ $value | int64 }} {{- else if typeIs "float64" $value }}{{ $value | int64 }}   {{- else if typeIs "[]interface {}" $value }} {{- $numOut := len $value }} {{- $numOut := sub $numOut 1 }} [{{- range $b, $val := $value }} {{- $i := int64 $b }} {{- if eq $i $numOut }} {{ $val | quote }} {{- else }} {{ $val | quote }}, {{- end }} {{- end }}] {{ else }}{{ $value }} {{ end }}, {{- end }} {{ if .Values.tls.enabled }} "pgParameters": {{- $pgParameters := .Values.pgParameters -}}{{ $all_init := set $pgParameters "ssl" "on" }}{{ $all_init := set $all_init "ssl_cert_file" "/certs/default/default-server-with-chain.pem" }} {{ $all_init := set $all_init "ssl_key_file" "/certs/default/default-server-key.pem" }}{{ $all_init := set $all_init "ssl_ca_file" "/certs/ca/ca.pem" }}{{ toJson $all_init }}{{ else }}"pgParameters": {{ toJson .Values.pgParameters }} {{ end}} }'
+            - '{ "initMode": "new", {{- range $key, $value := .Values.clusterSpec }} {{ $key | quote }}: {{ if typeIs "string" $value }}{{ $value | quote }} {{- else if typeIs "int" $value }}{{ $value | int64 }} {{- else if typeIs "float64" $value }}{{ $value | int64 }}   {{- else if typeIs "[]interface {}" $value }} {{- $numOut := len $value }} {{- $numOut := sub $numOut 1 }} [{{- range $b, $val := $value }} {{- $i := int64 $b }} {{- if eq $i $numOut }} {{ $val | quote }} {{- else }} {{ $val | quote }}, {{- end }} {{- end }}] {{ else }}{{ $value }} {{ end }}, {{- end }} "pgParameters": {{ toJson .Values.pgParameters }} }'
 {{ end }}

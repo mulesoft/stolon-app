@@ -59,8 +59,8 @@ spec:
             {{- end }}
             - name: STSENTINEL_METRICS_LISTEN_ADDRESS
               value: "0.0.0.0:{{ .Values.ports.metrics.containerPort }}"
-            - name: STSENTINEL_DEBUG
-              value: {{ .Values.debug | quote}}
+            - name: STSENTINEL_LOG_LEVEL
+              value: {{ .Values.logLevel | quote}}
 {{- if .Values.sentinel.extraEnv }}
 {{ toYaml .Values.sentinel.extraEnv | indent 12 }}
 {{- end }}

@@ -106,10 +106,10 @@ nodeProfiles:
 hooks:
   install:
     job: file://install.yaml
-  postInstall:
-    job: file://postInstall.yaml
-  preUpdate:
-    job: file://preUpdateHook.yaml
+  #postInstall:
+  #  job: file://postInstall.yaml
+  #preUpdate:
+  #  job: file://preUpdateHook.yaml
   update:
     job: |
       apiVersion: batch/v1

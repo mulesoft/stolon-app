@@ -8,6 +8,52 @@ serviceMonitor:
 
 keeper:
   replicaCount: 3
+  nodeSelector:
+    stolon-keeper: "yes"
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: component
+                operator: In
+                values:
+                  - stolon-keeper
+          topologyKey: kubernetes.io/hostname
+
+sentinel:
+  replicaCount: 3
+  nodeSelector:
+    stolon-keeper: "yes"
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: component
+                  operator: In
+                  values:
+                    - stolon-sentinel
+            topologyKey: kubernetes.io/hostname
+
+proxy:
+  replicaCount: 3
+  nodeSelector:
+    stolon-keeper: "yes"
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: component
+                  operator: In
+                  values:
+                    - stolon-proxy
+            topologyKey: kubernetes.io/hostname
 
 clusterSpec:
   requestTimeout: "60s"
@@ -37,6 +83,7 @@ pgParameters:
   ssl_ca_file: "/home/stolon/secrets/cluster-ca/ca.pem"
   ssl_cert_file: "/home/stolon/secrets/cluster-default/default-server-with-chain.pem"
   ssl_key_file: "/home/stolon/secrets/cluster-default/default-server-key.pem"
+  ssl: "on"
 
 tls:
   enabled: true
