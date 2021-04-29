@@ -9,13 +9,6 @@ community effor to maintain the helm chart. Please create an issue if you're
 interested on helping to maintain this chart.
 
 
-## TL;DR;
-
-```console
-$ helm repo add iomedstolon https://iomedhealth.github.io/helm_stolon/
-$ helm install iomedstolon/stolon
-```
-
 ## Installing the Chart
 
 To install the chart with the release name `my-release`:
@@ -26,7 +19,7 @@ $ helm install --name my-release iomedstolon/stolon
 
 ## Backend
 
-Kubernetes is the default store backend. `consul`, `etcdv2` or `etcdv3` can also be used as the store backend.
+`kubernetes` is the default store backend. `consul`, `etcdv2` or `etcdv3` can also be used as the store backend.
 
 ## Configuration
 
