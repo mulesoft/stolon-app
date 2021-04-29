@@ -70,6 +70,15 @@ properties([
     booleanParam(name: 'BUILD_GRAVITY_HELM_APP',
                  defaultValue: false,
                  description: 'Generate a Gravity Helm App tarball'),
+    string(name: 'S3_UPLOAD_PATH',
+           defaultValue: '',
+           description: 'S3 bucket and path to upload built application image. For example "builds.example.com/cluster-ssl-app".'),
+    booleanParam(name: 'IMPORT_APP_PACKAGE',
+                 defaultValue: false,
+                 description: 'Import application to S3 bucket'),
+    string(name: "AWS_CREDENTIALS",
+           defaultValue: '',
+           description: 'Name of the AWS credentials to use'),
   ]),
 ])
 
@@ -143,7 +152,6 @@ node {
         withEnv(MAKE_ENV) {
           writeFile file: 'resources/custom-build.yaml', text: ''
           sh 'make build-gravity-app'
-          archiveArtifacts "build/helm-application.tar"
         }
       } else {
         echo 'skipped build gravity helm app'
@@ -154,13 +162,49 @@ node {
       if (params.BUILD_GRAVITY_APP) {
         withEnv(MAKE_ENV) {
           sh 'make export'
-          archiveArtifacts "build/application.tar"
         }
       } else {
         echo 'skipped build gravity app'
       }
     }
+
+    stage('upload application tarball to S3') {
+      if (isProtectedBranch(env.TAG) && params.IMPORT_APP_PACKAGE) {
+        withCredentials([usernamePassword(credentialsId: "${AWS_CREDENTIALS}", usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+          def artifactName = "application.tar"
+          def s3AppName = "stolon"
+          if (params.BUILD_GRAVITY_HELM_APP) {
+            artifactName = "helm-application.tar"
+            s3AppName = "stolon-helm"
+          }
+          def S3_URL = "s3://${S3_UPLOAD_PATH}/${s3AppName}:${APP_VERSION}.tar"
+          withEnv(MAKE_ENV + ["S3_URL=${S3_URL}"]) {
+            sh 'aws s3 cp --only-show-errors build/${artifactName} ${S3_URL}'
+          }
+        }
+      }
+    }
   }
+}
+
+def isProtectedBranch(branchOrTagName) {
+  // check if tag or branch empty
+  if (!branchOrTagName?.trim()) {
+    return false
+  }
+
+  String[] protectedBranches = ['master', 'version/1.12.x']
+
+  protectedBranches.each { protectedBranch ->
+    if (branchOrTagName == "${protectedBranch}") {
+      return true;
+    }
+    def status = sh(script: "git branch --contains=${branchOrTagName} | grep '[*[:space:]]*${protectedBranch}\$'", returnStatus: true)
+    if (status == 0) {
+      return true
+    }
+  }
+  return false
 }
 
 void workspace(Closure body) {
