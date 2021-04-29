@@ -193,7 +193,7 @@ def isProtectedBranch(branchOrTagName) {
     return false
   }
 
-  String[] protectedBranches = ['master', 'version/1.12.x']
+  String[] protectedBranches = ['master', 'support/1.12.x']
 
   protectedBranches.each { protectedBranch ->
     if (branchOrTagName == "${protectedBranch}") {
