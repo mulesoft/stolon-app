@@ -16,8 +16,7 @@ STATEDIR ?= state
 TARBALL := build/application.tar
 
 SRCDIR=/go/src/github.com/gravitational/stolon-app
-DOCKERFLAGS=--rm=true -u $$(id -u):$$(id -g) -e XDG_CACHE_HOME=/tmp/.cache -v $(PWD):$(SRCDIR) -v $(GOPATH)/pkg:/gopath/pkg -w $(SRCDIR)
-BUILDBOX=stolon-app-buildbox:latest
+DOCKERFLAGS=--rm=true -u $$(id -u):$$(id -g) -e XDG_CACHE_HOME=/tmp/.cache -v $(PWD):$(SRCDIR) -v $(GOPATH)/pkg:/go/pkg -w $(SRCDIR)
 
 EXTRA_GRAVITY_OPTIONS ?=
 TELE_BUILD_EXTRA_OPTIONS ?=
@@ -36,32 +35,29 @@ ifneq ($(STATEDIR),)
 	EXTRA_GRAVITY_OPTIONS +=  --state-dir=$(STATEDIR)
 endif
 
+UNAME := $(shell uname | tr A-Z a-z)
 define replace
-	sed -i "$1" $2
+	sed -i $1 $2
 endef
 
-ifeq ($(OS),darwin)
+ifeq ($(UNAME),darwin)
 define replace
-	sed -i '' "$1" $2
+	sed -i '' $1 $2
 endef
 endif
 
-CONTAINERS := stolon-bootstrap:$(VERSION) \
-			  stolon-uninstall:$(VERSION) \
+CONTAINERS := stolon-uninstall:$(VERSION) \
 			  stolon-hook:$(VERSION) \
 			  stolon:$(VERSION) \
 			  stolon-telegraf:$(VERSION) \
-			  stolonctl:$(VERSION) \
 			  stolon-pgbouncer:$(VERSION) \
 			  stolon-etcd:$(VERSION) \
 			  stolon-common:$(VERSION)
 
-IMPORT_IMAGE_OPTIONS := --set-image=stolon-bootstrap:$(VERSION) \
-	--set-image=stolon-uninstall:$(VERSION) \
+IMPORT_IMAGE_OPTIONS := --set-image=stolon-uninstall:$(VERSION) \
 	--set-image=stolon-hook:$(VERSION) \
 	--set-image=stolon:$(VERSION) \
 	--set-image=stolon-telegraf:$(VERSION) \
-	--set-image=stolonctl:$(VERSION) \
 	--set-image=stolon-pgbouncer:$(VERSION) \
 	--set-image=stolon-etcd:$(VERSION) \
 	--set-image=stolon-common:$(VERSION)
@@ -114,16 +110,12 @@ $(STATEDIR):
 .PHONY: all
 all: clean images
 
-.PHONY: buildbox
-buildbox:
-	cd images && $(MAKE) -f Makefile buildbox
-
 .PHONY: what-version
 what-version:
 	@echo $(VERSION)
 
 .PHONY: images
-images: lint
+images:
 	cd images && $(MAKE) -f Makefile VERSION=$(VERSION)
 
 .PHONY: export
@@ -146,7 +138,7 @@ import: images
 # .PHONY because VERSION is dynamic
 .PHONY: $(BUILD_DIR)/resources/app.yaml
 $(BUILD_DIR)/resources/app.yaml: | $(BUILD_DIR)
-	cp --archive resources $(BUILD_DIR)
+	cp -a resources $(BUILD_DIR)
 	$(call replace,"s#gravitational.io/cluster-ssl-app:0.0.0+latest#gravitational.io/cluster-ssl-app:$(CLUSTER_SSL_APP_VERSION)#",$(BUILD_DIR)/resources/app.yaml)
 	$(call replace,"s/tag: latest/tag: $(VERSION)/g",$(BUILD_DIR)/resources/values.yaml)
 	$(call replace,"s/0.1.0/$(VERSION)/g",$(BUILD_DIR)/resources/Chart.yaml)
@@ -160,20 +152,6 @@ build-app: images $(BUILD_DIR)/resources/app.yaml
 build-gravity-app: images $(BUILD_DIR)/resources/app.yaml
 	$(TELE) build $(TELE_BUILD_APP_OPTIONS) -f -o $(BUILD_DIR)/helm-application.tar $(BUILD_DIR)/resources/charts/stolon
 
-.PHONY: build-stolonboot
-build-stolonboot: $(BUILD_DIR)
-	docker run $(DOCKERFLAGS) $(BUILDBOX) make build-stolonboot-docker
-
-build-stolonboot-docker:
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -a -installsuffix cgo -o build/stolonboot cmd/stolonboot/*.go
-
-.PHONY: build-stolonctl
-build-stolonctl: $(BUILD_DIR)
-	docker run $(DOCKERFLAGS) $(BUILDBOX) make build-stolonctl-docker
-
-build-stolonctl-docker:
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -a -installsuffix cgo -o build/stolonctl cmd/stolonctl/*.go
-
 # number of environment variables are expected to be set
 # see https://github.com/gravitational/robotest/blob/master/suite/README.md
 #
@@ -185,7 +163,7 @@ robotest-run-suite:
 download-binaries: $(BINARIES_DIR)
 	for name in gravity tele; \
 	do \
-		curl https://get.gravitational.io/telekube/bin/$(TELE_VERSION)/linux/x86_64/$$name -o $(BINARIES_DIR)/$$name; \
+		curl https://get.gravitational.io/telekube/bin/$(TELE_VERSION)/$(UNAME)/x86_64/$$name -o $(BINARIES_DIR)/$$name; \
 		chmod +x $(BINARIES_DIR)/$$name; \
 	done
 
@@ -199,15 +177,10 @@ install-dependent-packages: clean-state-dir $(STATEDIR) $(BUILD_DIR)
 .PHONY: clean
 clean: clean-state-dir
 	-rm -rf $(BUILD_DIR)
-	cd images && $(MAKE) clean
 	-rm -rf wd_suite
 
 clean-state-dir:
 	-rm -rf $(STATEDIR)
-
-.PHONY: lint
-lint: buildbox
-	docker run $(DOCKERFLAGS) $(BUILDBOX) golangci-lint run --timeout=5m --skip-dirs=vendor ./...
 
 .PHONY: push
 push:

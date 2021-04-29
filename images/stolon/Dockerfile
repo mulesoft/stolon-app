@@ -1,18 +1,17 @@
-ARG PGVERSION=12
 # base build image
-FROM quay.io/gravitational/debian-venti:go1.16.3-buster AS builder
-ARG STOLON_REVISION=v0.16.0
+ARG GOLANG_VERSION
+ARG PGVERSION
+
+FROM quay.io/gravitational/debian-venti:go${GOLANG_VERSION}-buster AS builder
+ARG STOLON_REVISION
 
 ENV REPO_PATH=/stolon
+WORKDIR $REPO_PATH
 RUN set -eux; \
     apt-get update && \
     apt-get install -qq -y git && \
-    git clone https://github.com/sorintlab/stolon.git $REPO_PATH && \
-    cd $REPO_PATH && git checkout $STOLON_REVISION
-
-WORKDIR $REPO_PATH
-
-RUN make
+    git clone https://github.com/sorintlab/stolon.git $REPO_PATH --depth=1 --branch $STOLON_REVISION && \
+    make
 
 FROM quay.io/gravitational/debian-grande:buster AS downloader
 ARG PGMETRICS_VERSION=1.7.0
