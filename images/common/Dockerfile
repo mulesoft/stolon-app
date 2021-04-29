@@ -1,9 +1,8 @@
-FROM quay.io/gravitational/debian-grande:stretch
+FROM quay.io/gravitational/debian-grande:buster
 
 RUN apt-get update && \
     apt-get install --yes --no-install-recommends \
         hostname \
-        procps \
         openssl && \
     apt-get clean && \
     rm -rf \

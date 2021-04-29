@@ -62,7 +62,6 @@ replicationForcePassword: false
 ## backend could be one of the following: consul, etcdv2, etcdv3 or kubernetes
 store:
   backend: kubernetes
-#  endpoints: "http://stolon-consul:8500"
   kubeResourceKind: configmap
 
 pgParameters: {}

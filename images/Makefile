@@ -9,7 +9,6 @@ all: images
 UNINSTALL_TAG := stolon-uninstall:$(VERSION)
 HOOK_TAG := stolon-hook:$(VERSION)
 STOLON_TAG := stolon:$(VERSION)
-TELEGRAF_TAG := stolon-telegraf:$(VERSION)
 PGBOUNCER_TAG := stolon-pgbouncer:$(VERSION)
 ETCD_TAG := stolon-etcd:$(VERSION)
 COMMON_TAG := stolon-common:$(VERSION)
@@ -17,7 +16,6 @@ COMMON_TAG := stolon-common:$(VERSION)
 .PHONY: images
 images:	uninstall \
 		stolon \
-		telegraf \
 		hook \
 		pgbouncer \
 		etcd \
@@ -25,12 +23,11 @@ images:	uninstall \
 	docker tag $(UNINSTALL_TAG) stolon-uninstall:latest
 	docker tag $(STOLON_TAG) stolon:latest
 	docker tag $(HOOK_TAG) stolon-hook:latest
-	docker tag $(TELEGRAF_TAG) stolon-telegraf:latest
 	docker tag $(PGBOUNCER_TAG) stolon-pgbouncer:latest
 	docker tag $(ETCD_TAG) stolon-etcd:latest
 	docker tag $(COMMON_TAG) stolon-common:latest
 
-IMAGES_FOR_BUILD := uninstall telegraf pgbouncer etcd common
+IMAGES_FOR_BUILD := uninstall pgbouncer etcd common
 TAG_VARIABLE_NAME = $(shell echo '$@' | tr '[:lower:]' '[:upper:]')_TAG
 .PHONY: $(IMAGES_FOR_BUILD)
 $(IMAGES_FOR_BUILD):

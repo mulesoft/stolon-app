@@ -1,3 +1,5 @@
+clusterName: kube-stolon
+
 registry: "leader.telekube.local:5000/"
 
 persistence:

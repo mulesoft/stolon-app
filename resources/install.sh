@@ -8,7 +8,7 @@ then
     export EXTRA_PARAMS="--values /var/lib/gravity/resources/custom-build.yaml"
 fi
 
-set +e
+set +eu
 /usr/local/bin/helm3 install stolon /var/lib/gravity/resources \
     --values /var/lib/gravity/resources/custom-values.yaml $EXTRA_PARAMS
 
