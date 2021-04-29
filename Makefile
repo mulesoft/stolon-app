@@ -36,6 +36,16 @@ ifneq ($(STATEDIR),)
 	EXTRA_GRAVITY_OPTIONS +=  --state-dir=$(STATEDIR)
 endif
 
+define replace
+	sed -i "$1" $2
+endef
+
+ifeq ($(OS),darwin)
+define replace
+	sed -i '' "$1" $2
+endef
+endif
+
 CONTAINERS := stolon-bootstrap:$(VERSION) \
 			  stolon-uninstall:$(VERSION) \
 			  stolon-hook:$(VERSION) \
@@ -124,22 +134,22 @@ $(TARBALL):
 
 .PHONY: import
 import: images
-	sed -i "s#gravitational.io/cluster-ssl-app:0.0.0+latest#gravitational.io/cluster-ssl-app:$(CLUSTER_SSL_APP_VERSION)#" resources/app.yaml
-	sed -i "s/tag: latest/tag: $(VERSION)/g" resources/values.yaml
-	sed -i "s/0.1.0/$(VERSION)/g" resources/Chart.yaml
+	$(call replace,"s#gravitational.io/cluster-ssl-app:0.0.0+latest#gravitational.io/cluster-ssl-app:$(CLUSTER_SSL_APP_VERSION)#",resources/app.yaml)
+	$(call replace,"s/tag: $(VERSION)/tag: latest/g",resources/values.yaml)
+	$(call replace,"s/0.1.0/$(VERSION)/g",resources/Chart.yaml)
 	$(GRAVITY) app delete --ops-url=$(OPS_URL) $(REPOSITORY)/$(NAME):$(VERSION) --force $(EXTRA_GRAVITY_OPTIONS)
 	$(GRAVITY) app import $(IMPORT_OPTIONS) $(EXTRA_GRAVITY_OPTIONS) .
-	sed -i "s#gravitational.io/cluster-ssl-app:$(CLUSTER_SSL_APP_VERSION)#gravitational.io/cluster-ssl-app:0.0.0+latest#" resources/app.yaml
-	sed -i "s/tag: $(VERSION)/tag: latest/g" resources/values.yaml
-	sed -i "s/$(VERSION)/0.1.0/g" resources/Chart.yaml
+	$(call replace,"s#gravitational.io/cluster-ssl-app:$(CLUSTER_SSL_APP_VERSION)#gravitational.io/cluster-ssl-app:0.0.0+latest#",resources/app.yaml)
+	$(call replace,"s/tag: $(VERSION)/tag: latest/g",resources/values.yaml)
+	$(call replace,"s/$(VERSION)/0.1.0/g",resources/Chart.yaml)
 
 # .PHONY because VERSION is dynamic
 .PHONY: $(BUILD_DIR)/resources/app.yaml
 $(BUILD_DIR)/resources/app.yaml: | $(BUILD_DIR)
 	cp --archive resources $(BUILD_DIR)
-	sed -i "s#gravitational.io/cluster-ssl-app:0.0.0+latest#gravitational.io/cluster-ssl-app:$(CLUSTER_SSL_APP_VERSION)#" $(BUILD_DIR)/resources/app.yaml
-	sed -i "s/tag: latest/tag: $(VERSION)/g" $(BUILD_DIR)/resources/values.yaml
-	sed -i "s/0.1.0/$(VERSION)/g" $(BUILD_DIR)/resources/Chart.yaml
+	$(call replace,"s#gravitational.io/cluster-ssl-app:0.0.0+latest#gravitational.io/cluster-ssl-app:$(CLUSTER_SSL_APP_VERSION)#",$(BUILD_DIR)/resources/app.yaml)
+	$(call replace,"s/tag: latest/tag: $(VERSION)/g",$(BUILD_DIR)/resources/values.yaml)
+	$(call replace,"s/0.1.0/$(VERSION)/g",$(BUILD_DIR)/resources/Chart.yaml)
 
 .PHONY: build-app
 build-app: images $(BUILD_DIR)/resources/app.yaml
@@ -194,10 +204,6 @@ clean: clean-state-dir
 
 clean-state-dir:
 	-rm -rf $(STATEDIR)
-
-.PHONY: fix-logrus
-fix-logrus:
-	find vendor -type f -print0 | xargs -0 sed -i 's/Sirupsen/sirupsen/g'
 
 .PHONY: lint
 lint: buildbox
