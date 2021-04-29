@@ -73,7 +73,7 @@ properties([
     string(name: 'S3_UPLOAD_PATH',
            defaultValue: '',
            description: 'S3 bucket and path to upload built application image. For example "builds.example.com/cluster-ssl-app".'),
-    booleanParam(name: 'IMPORT_APP_PACKAGE',
+    booleanParam(name: 'PUBLISH_APP_PACKAGE',
                  defaultValue: false,
                  description: 'Import application to S3 bucket'),
     string(name: "AWS_CREDENTIALS",
@@ -106,6 +106,9 @@ node {
     stage('params') {
       echo "${params}"
       propagateParamsToEnv()
+      if (isProtectedBranch(params.TAG)) {
+        echo "protected branch"
+      }
     }
     stage('clean') {
       sh "make clean"
@@ -169,7 +172,7 @@ node {
     }
 
     stage('upload application tarball to S3') {
-      if (isProtectedBranch(env.TAG) && params.IMPORT_APP_PACKAGE) {
+      if (isProtectedBranch(env.TAG) && params.PUBLISH_APP_PACKAGE) {
         withCredentials([usernamePassword(credentialsId: "${AWS_CREDENTIALS}", usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
           def artifactName = "application.tar"
           def s3AppName = "stolon"
@@ -193,13 +196,14 @@ def isProtectedBranch(branchOrTagName) {
     return false
   }
 
-  String[] protectedBranches = ['master', 'support/1.12.x']
+  String[] protectedBranches = ['master', 'support/.*']
 
   protectedBranches.each { protectedBranch ->
     if (branchOrTagName == "${protectedBranch}") {
       return true;
     }
     def status = sh(script: "git branch --all --contains=${branchOrTagName} | grep '[*[:space:]]*remotes/origin/${protectedBranch}\$'", returnStatus: true)
+    echo "${status}"
     if (status == 0) {
       return true
     }
