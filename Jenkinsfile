@@ -130,7 +130,7 @@ node {
     stage('populate state directory with gravity and cluster-ssl packages') {
       if (!params.BUILD_GRAVITY_HELM_APP) {
         withEnv(MAKE_ENV + ["BINARIES_DIR=${BINARIES_DIR}"]) {
-          sh 'make install-dependent-packages'
+          sh 'tele logout && make install-dependent-packages'
         }
       } else {
         echo 'Helm chart application is built without state. Stage skipped.'
@@ -199,7 +199,7 @@ def isProtectedBranch(branchOrTagName) {
     if (branchOrTagName == "${protectedBranch}") {
       return true;
     }
-    def status = sh(script: "git branch --contains=${branchOrTagName} | grep '[*[:space:]]*${protectedBranch}\$'", returnStatus: true)
+    def status = sh(script: "git branch --contains=${branchOrTagName} | grep \"[*[:space:]]*${protectedBranch}\$\"", returnStatus: true)
     if (status == 0) {
       return true
     }
