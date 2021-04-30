@@ -172,10 +172,10 @@ node {
       if (isProtectedBranch(env.TAG) && params.PUBLISH_APP_PACKAGE) {
         withCredentials([usernamePassword(credentialsId: "${AWS_CREDENTIALS}", usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
           def artifactName = "application.tar"
-          def s3AppName = "stolon"
+          def s3AppName = "stolon-app"
           if (params.BUILD_GRAVITY_HELM_APP) {
             artifactName = "helm-application.tar"
-            s3AppName = "stolon-helm"
+            s3AppName = "stolon-app-helm"
           }
           def s3Url = "s3://${S3_UPLOAD_PATH}/${s3AppName}:${APP_VERSION}.tar"
           withEnv(MAKE_ENV + ["S3_URL=${s3Url}", "artifactName=${artifactName}"]) {
