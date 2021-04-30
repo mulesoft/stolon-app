@@ -197,16 +197,22 @@ def isProtectedBranch(branchOrTagName) {
   }
 
   String[] protectedBranches = ['master', 'support/.*']
+  def match = false
 
-  protectedBranches.each { protectedBranch ->
+  protectedBranches.any { protectedBranch ->
     if (branchOrTagName == "${protectedBranch}") {
-      return true;
-    }
-    def status = sh(script: "git branch --all --contains=${branchOrTagName} | grep '[*[:space:]]*remotes/origin/${protectedBranch}\$'", returnStatus: true)
-    echo "${status}"
-    if (status == 0) {
+      match = true
       return true
     }
+    def status = sh(script: "git branch --all --contains=${branchOrTagName} | grep '[*[:space:]]*remotes/origin/${protectedBranch}\$'", returnStatus: true)
+    if (status == 0) {
+      match = true
+      return true
+    }
+  }
+
+  if (match) {
+    return true
   }
   return false
 }
