@@ -178,9 +178,7 @@ node {
             s3AppName = "stolon-app-helm"
           }
           def s3Url = "s3://${S3_UPLOAD_PATH}/${s3AppName}:${APP_VERSION}.tar"
-          withEnv(MAKE_ENV + ["S3_URL=${s3Url}", "artifactName=${artifactName}"]) {
-            sh 'aws s3 cp --only-show-errors build/${artifactName} ${S3_URL}'
-          }
+          sh 'aws s3 cp --only-show-errors build/${artifactName} ${s3Url}'
         }
       }
     }
