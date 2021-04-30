@@ -178,7 +178,7 @@ node {
             s3AppName = "stolon-app-helm"
           }
           def s3Url = "s3://${S3_UPLOAD_PATH}/${s3AppName}:${APP_VERSION}.tar"
-          sh 'aws s3 cp --only-show-errors build/${artifactName} ${s3Url}'
+          sh "aws s3 cp --only-show-errors build/${artifactName} ${s3Url}"
         }
       }
     }
@@ -192,22 +192,11 @@ def isProtectedBranch(branchOrTagName) {
   }
 
   String[] protectedBranches = ['master', 'support/.*']
-  def match = false
 
-  protectedBranches.any { protectedBranch ->
-    if (branchOrTagName == "${protectedBranch}") {
-      match = true
-      return true
-    }
+  return protectedBranches.any { protectedBranch ->
+    if (branchOrTagName == protectedBranch) return true
     def status = sh(script: "git branch --all --contains=${branchOrTagName} | grep '[*[:space:]]*remotes/origin/${protectedBranch}\$'", returnStatus: true)
-    if (status == 0) {
-      match = true
-      return true
-    }
-  }
-
-  if (match) {
-    return true
+    return status == 0
   }
   return false
 }
