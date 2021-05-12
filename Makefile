@@ -8,10 +8,10 @@ OPS_URL ?=
 TELE ?= $(shell which tele)
 GRAVITY ?= $(shell which gravity)
 INTERMEDIATE_RUNTIME_VERSION ?=
-GRAVITY_VERSION ?= 5.5.57
+GRAVITY_VERSION ?= 5.5.59
 TELE_VERSION ?= $(GRAVITY_VERSION)
-CLUSTER_SSL_APP_VERSION ?= 0.8.5
-CLUSTER_SSL_APP_URL ?= https://github.com/gravitational/cluster-ssl-app/releases/download/${CLUSTER_SSL_APP_VERSION}/cluster-ssl-app-${CLUSTER_SSL_APP_VERSION}.tar.gz
+CLUSTER_SSL_APP_VERSION ?= 0.8.7
+CLUSTER_SSL_APP_URL ?= https://github.com/mulesoft/cluster-ssl-app/releases/download/${CLUSTER_SSL_APP_VERSION}/cluster-ssl-app-${CLUSTER_SSL_APP_VERSION}.tar.gz
 STATEDIR ?= state
 TARBALL := build/application.tar
 
