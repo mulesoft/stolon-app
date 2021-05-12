@@ -1,19 +1,39 @@
-export VERSION ?= $(shell ./version.sh)
+ifeq ($(origin VERSION), undefined)
+# avoid ?= lazily evaluating version.sh (and thus rerunning the shell command several times)
+VERSION := $(shell ./version.sh)
+endif
 REPOSITORY := gravitational.io
 NAME := stolon-app
-OPS_URL ?= https://opscenter.localhost.localdomain:33009
+OPS_URL ?=
 TELE ?= $(shell which tele)
 GRAVITY ?= $(shell which gravity)
-RUNTIME_VERSION ?= $(shell $(TELE) version | awk '/^[vV]ersion:/ {print $$2}')
-INTERMEDIATE_RUNTIME_VERSION ?= 5.2.15
-GRAVITY_VERSION ?= 5.5.21
-CLUSTER_SSL_APP_VERSION ?= "0.0.0+latest"
+INTERMEDIATE_RUNTIME_VERSION ?=
+GRAVITY_VERSION ?= 5.5.57
+TELE_VERSION ?= $(GRAVITY_VERSION)
+CLUSTER_SSL_APP_VERSION ?= 0.8.5
+CLUSTER_SSL_APP_URL ?= https://github.com/gravitational/cluster-ssl-app/releases/download/${CLUSTER_SSL_APP_VERSION}/cluster-ssl-app-${CLUSTER_SSL_APP_VERSION}.tar.gz
+STATEDIR ?= state
+TARBALL := build/application.tar
 
 SRCDIR=/go/src/github.com/gravitational/stolon-app
-DOCKERFLAGS=--rm=true -v $(PWD):$(SRCDIR) -w $(SRCDIR)
+DOCKERFLAGS=--rm=true -u $$(id -u):$$(id -g) -e XDG_CACHE_HOME=/tmp/.cache -v $(PWD):$(SRCDIR) -v $(GOPATH)/pkg:/gopath/pkg -w $(SRCDIR)
 BUILDBOX=stolon-app-buildbox:latest
 
 EXTRA_GRAVITY_OPTIONS ?=
+TELE_BUILD_EXTRA_OPTIONS ?=
+
+# --skip-version-check to build 5.5.x images with 7.0.x binary
+TELE_BUILD_EXTRA_OPTIONS += --skip-version-check
+
+# if variable is not empty add an extra parameter to tele build
+ifneq ($(INTERMEDIATE_RUNTIME_VERSION),)
+	TELE_BUILD_EXTRA_OPTIONS +=  --upgrade-via=$(INTERMEDIATE_RUNTIME_VERSION)
+endif
+
+# add state directory to the commands if STATEDIR variable not empty
+ifneq ($(STATEDIR),)
+	EXTRA_GRAVITY_OPTIONS +=  --state-dir=$(STATEDIR)
+endif
 
 CONTAINERS := stolon-bootstrap:$(VERSION) \
 			  stolon-uninstall:$(VERSION) \
@@ -35,7 +55,6 @@ IMPORT_IMAGE_OPTIONS := --set-image=stolon-bootstrap:$(VERSION) \
 
 IMPORT_OPTIONS := --vendor \
 		--ops-url=$(OPS_URL) \
-		--insecure \
 		--repository=$(REPOSITORY) \
 		--name=$(NAME) \
 		--version=$(VERSION) \
@@ -47,13 +66,25 @@ IMPORT_OPTIONS := --vendor \
 		--registry-url=leader.telekube.local:5000 \
 		$(IMPORT_IMAGE_OPTIONS)
 
-TELE_BUILD_OPTIONS := --insecure \
-		--repository=$(OPS_URL) \
-		--name=$(NAME) \
+ifneq ($(OPS_URL),)
+	TELE_BUILD_EXTRA_OPTIONS +=  --repository=$(OPS_URL)
+endif
+
+TELE_BUILD_OPTIONS := --name=$(NAME) \
 		--version=$(VERSION) \
 		--glob=**/*.yaml \
-		--upgrade-via=$(INTERMEDIATE_RUNTIME_VERSION) \
+		$(TELE_BUILD_EXTRA_OPTIONS) \
 		$(IMPORT_IMAGE_OPTIONS)
+
+TELE_BUILD_APP_OPTIONS := --insecure \
+		--version=$(VERSION) \
+		--set registry="" \
+		--set image.tag=$(VERSION) \
+		--set etcdImage.tag=$(VERSION) \
+		--set telegrafImage.tag=$(VERSION) \
+		--set pgbouncerImage.tag=$(VERSION) \
+		--set stolonctlImage.tag=$(VERSION) \
+		--values resources/custom-values.yaml
 
 BUILD_DIR := build
 BINARIES_DIR := bin
@@ -63,6 +94,9 @@ $(BUILD_DIR):
 
 $(BINARIES_DIR):
 	mkdir -p $(BINARIES_DIR)
+
+$(STATEDIR):
+	mkdir -p $(STATEDIR)
 
 .PHONY: all
 all: clean images
@@ -79,26 +113,40 @@ what-version:
 images: lint
 	cd images && $(MAKE) -f Makefile VERSION=$(VERSION)
 
+.PHONY: export
+export: import $(TARBALL)
+
+$(TARBALL):
+	$(GRAVITY) package export $(REPOSITORY)/$(NAME):$(VERSION) $(TARBALL) $(EXTRA_GRAVITY_OPTIONS)
+
 .PHONY: import
-import: images
+import: images $(BUILD_DIR)/resources/app.yaml
 	sed -i "s#gravitational.io/cluster-ssl-app:0.0.0+latest#gravitational.io/cluster-ssl-app:$(CLUSTER_SSL_APP_VERSION)#" resources/app.yaml
 	sed -i "s/tag: latest/tag: $(VERSION)/g" resources/charts/stolon/values.yaml
 	sed -i "s/0.1.0/$(VERSION)/g" resources/charts/stolon/Chart.yaml
-	-$(GRAVITY) app delete --ops-url=$(OPS_URL) $(REPOSITORY)/$(NAME):$(VERSION) --force --insecure $(EXTRA_GRAVITY_OPTIONS)
+	$(GRAVITY) app delete --ops-url=$(OPS_URL) $(REPOSITORY)/$(NAME):$(VERSION) --force $(EXTRA_GRAVITY_OPTIONS)
 	$(GRAVITY) app import $(IMPORT_OPTIONS) $(EXTRA_GRAVITY_OPTIONS) .
 	sed -i "s#gravitational.io/cluster-ssl-app:$(CLUSTER_SSL_APP_VERSION)#gravitational.io/cluster-ssl-app:0.0.0+latest#" resources/app.yaml
 	sed -i "s/tag: $(VERSION)/tag: latest/g" resources/charts/stolon/values.yaml
 	sed -i "s/$(VERSION)/0.1.0/g" resources/charts/stolon/Chart.yaml
 
+# .PHONY because VERSION is dynamic
+.PHONY: $(BUILD_DIR)/resources/app.yaml
+$(BUILD_DIR)/resources/app.yaml: | $(BUILD_DIR)
+	cp --archive resources $(BUILD_DIR)
+	sed -i "s/version: \"0.0.0+latest\"/version: \"$(GRAVITY_VERSION)\"/" $(BUILD_DIR)/resources/app.yaml
+	sed -i "s#gravitational.io/cluster-ssl-app:0.0.0+latest#gravitational.io/cluster-ssl-app:$(CLUSTER_SSL_APP_VERSION)#" $(BUILD_DIR)/resources/app.yaml
+	sed -i "s/tag: latest/tag: $(VERSION)/g" $(BUILD_DIR)/resources/charts/stolon/values.yaml
+	sed -i "s/0.1.0/$(VERSION)/g" $(BUILD_DIR)/resources/charts/stolon/Chart.yaml
+
 .PHONY: build-app
-build-app: images
-	sed -i "s#gravitational.io/cluster-ssl-app:0.0.0+latest#gravitational.io/cluster-ssl-app:$(CLUSTER_SSL_APP_VERSION)#" resources/app.yaml
-	sed -i "s/tag: latest/tag: $(VERSION)/g" resources/charts/stolon/values.yaml
-	sed -i "s/0.1.0/$(VERSION)/g" resources/charts/stolon/Chart.yaml
-	-$(TELE) build -f -o $(BUILD_DIR)/installer.tar $(TELE_BUILD_OPTIONS) $(EXTRA_GRAVITY_OPTIONS) resources/app.yaml
-	sed -i "s#gravitational.io/cluster-ssl-app:$(CLUSTER_SSL_APP_VERSION)#gravitational.io/cluster-ssl-app:0.0.0+latest#" resources/app.yaml
-	sed -i "s/tag: $(VERSION)/tag: latest/g" resources/charts/stolon/values.yaml
-	sed -i "s/$(VERSION)/0.1.0/g" resources/charts/stolon/Chart.yaml
+build-app: images $(BUILD_DIR)/resources/app.yaml
+	$(GRAVITY) $(EXTRA_GRAVITY_OPTIONS) package list
+	$(TELE) build -f -o $(BUILD_DIR)/installer.tar $(TELE_BUILD_OPTIONS) $(EXTRA_GRAVITY_OPTIONS) $(BUILD_DIR)/resources/app.yaml
+
+.PHONY: build-gravity-app
+build-gravity-app: images $(BUILD_DIR)/resources/app.yaml
+	$(TELE) build $(TELE_BUILD_APP_OPTIONS) -f -o $(BUILD_DIR)/helm-application.tar $(BUILD_DIR)/resources/charts/stolon
 
 .PHONY: build-stolonboot
 build-stolonboot: $(BUILD_DIR)
@@ -119,21 +167,31 @@ build-stolonctl-docker:
 #
 .PHONY: robotest-run-suite
 robotest-run-suite:
-	./scripts/robotest_run_suite.sh $(shell pwd)/upgrade_from
+	./robotest/run.sh pr
 
 .PHONY: download-binaries
 download-binaries: $(BINARIES_DIR)
 	for name in gravity tele; \
 	do \
-		curl https://get.gravitational.io/telekube/bin/$(GRAVITY_VERSION)/linux/x86_64/$$name -o $(BINARIES_DIR)/$$name; \
+		curl https://get.gravitational.io/telekube/bin/$(TELE_VERSION)/linux/x86_64/$$name -o $(BINARIES_DIR)/$$name; \
 		chmod +x $(BINARIES_DIR)/$$name; \
 	done
 
+.PHONY: install-dependent-packages
+install-dependent-packages: clean-state-dir $(STATEDIR) $(BUILD_DIR)
+	$(TELE) pull gravity:$(GRAVITY_VERSION) $(EXTRA_GRAVITY_OPTIONS) -o $(BUILD_DIR)/gravity.tar --force
+	tar xf $(BUILD_DIR)/gravity.tar -C $(STATEDIR) gravity.db packages
+	curl -L $(CLUSTER_SSL_APP_URL) -o $(BUILD_DIR)/cluster-ssl-app.tar.gz
+	$(GRAVITY) $(EXTRA_GRAVITY_OPTIONS) app import $(BUILD_DIR)/cluster-ssl-app.tar.gz
+
 .PHONY: clean
-clean:
-	rm -rf $(BUILD_DIR)
+clean: clean-state-dir
+	-rm -rf $(BUILD_DIR)
 	cd images && $(MAKE) clean
-	rm -rf wd_suite
+	-rm -rf wd_suite
+
+clean-state-dir:
+	-rm -rf $(STATEDIR)
 
 .PHONY: fix-logrus
 fix-logrus:
@@ -141,4 +199,12 @@ fix-logrus:
 
 .PHONY: lint
 lint: buildbox
-	docker run $(DOCKERFLAGS) $(BUILDBOX) golangci-lint run --skip-dirs=vendor ./...
+	docker run $(DOCKERFLAGS) $(BUILDBOX) golangci-lint run --timeout=5m --skip-dirs=vendor ./...
+
+.PHONY: push
+push:
+	$(TELE) push -f $(EXTRA_GRAVITY_OPTIONS) $(BUILD_DIR)/installer.tar
+
+.PHONY: get-version
+get-version:
+	@echo $(VERSION)

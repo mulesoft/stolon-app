@@ -10,6 +10,7 @@ metadata:
 spec:
   parallelism: 1
   completions: 1
+  activeDeadlineSeconds: 600
   template:
     metadata:
       labels:
@@ -19,6 +20,8 @@ spec:
       nodeSelector:
         gravitational.io/k8s-role: master
       restartPolicy: OnFailure
+      securityContext:
+        runAsUser: 0
       serviceAccountName: {{ template "stolon.serviceAccountName" . }}
       containers:
         - name: copy

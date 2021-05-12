@@ -15,13 +15,8 @@ systemOptions:
 installer:
   flavors:
     prompt: "How many nodes will you need?"
-    default: one
+    default: three
     items:
-      - name: "one"
-        description: "single node"
-        nodes:
-          - profile: node
-            count: 1
       - name: "three"
         description: "three node cluster"
         nodes:
@@ -113,6 +108,8 @@ hooks:
     job: file://install.yaml
   postInstall:
     job: file://postInstall.yaml
+  preUpdate:
+    job: file://preUpdateHook.yaml
   update:
     job: |
       apiVersion: batch/v1
@@ -127,7 +124,6 @@ hooks:
           metadata:
             name: stolon-app-update
           spec:
-            hostNetwork: true
             restartPolicy: Never
             containers:
               - name: hook

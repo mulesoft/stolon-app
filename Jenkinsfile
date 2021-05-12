@@ -10,24 +10,25 @@ def propagateParamsToEnv() {
 properties([
   disableConcurrentBuilds(),
   parameters([
-    choice(choices: ["run", "skip"].join("\n"),
-           defaultValue: 'run',
+    string(name: 'TAG',
+           defaultValue: '',
+           description: 'Git tag to build'),
+    string(name: 'VERSION',
+           defaultValue: '',
+           description: 'Override automatic versioning'),
+    booleanParam(defaultValue: false,
            description: 'Run or skip robotest system wide tests.',
            name: 'RUN_ROBOTEST'),
     choice(choices: ["true", "false"].join("\n"),
-           defaultValue: 'true',
            description: 'Destroy all VMs on success.',
            name: 'DESTROY_ON_SUCCESS'),
     choice(choices: ["true", "false"].join("\n"),
-           defaultValue: 'true',
            description: 'Destroy all VMs on failure.',
            name: 'DESTROY_ON_FAILURE'),
     choice(choices: ["true", "false"].join("\n"),
-           defaultValue: 'true',
            description: 'Abort all tests upon first failure.',
            name: 'FAIL_FAST'),
     choice(choices: ["gce"].join("\n"),
-           defaultValue: 'gce',
            description: 'Cloud provider to deploy to.',
            name: 'DEPLOY_TO'),
     string(name: 'PARALLEL_TESTS',
@@ -36,28 +37,62 @@ properties([
     string(name: 'REPEAT_TESTS',
            defaultValue: '1',
            description: 'How many times to repeat each test.'),
+    string(name: 'RETRIES',
+           defaultValue: '0',
+           description: 'How many times to retry each failed test'),
     string(name: 'ROBOTEST_VERSION',
-           defaultValue: 'stable-gce',
+           defaultValue: '2.2.1',
            description: 'Robotest tag to use.'),
-    string(name: 'OPS_URL',
-           defaultValue: 'https://ci-ops.gravitational.io',
-           description: 'Ops Center URL to download dependencies from'),
     string(name: 'GRAVITY_VERSION',
-           defaultValue: '5.5.21',
+           defaultValue: '5.5.56',
            description: 'gravity/tele binaries version'),
+    string(name: 'TELE_VERSION',
+           defaultValue: '5.5.56',
+           description: 'Version of tele binary to build application'),
     string(name: 'CLUSTER_SSL_APP_VERSION',
-           defaultValue: '0.8.2-5.5.21',
+           defaultValue: '0.8.5',
            description: 'cluster-ssl-app version'),
-    string(name: 'INTERMEDIATE_RUNTIME_VERSION',
-           defaultValue: '5.2.15',
-           description: 'Version of runtime to upgrade with')
+    string(name: 'EXTRA_GRAVITY_OPTIONS',
+           defaultValue: '',
+           description: 'Gravity options to add when calling tele'),
+    string(name: 'TELE_BUILD_EXTRA_OPTIONS',
+           defaultValue: '',
+           description: 'Extra options to add when calling tele build'),
+    booleanParam(name: 'ADD_GRAVITY_VERSION',
+                 defaultValue: false,
+                 description: 'Appends "-${GRAVITY_VERSION}" to the tag to be published'),
+    booleanParam(name: 'BUILD_CLUSTER_IMAGE',
+                 defaultValue: false,
+                 description: 'Generate a Gravity Cluster Image(Self-sufficient tarball)'),
+    booleanParam(name: 'BUILD_GRAVITY_APP',
+                 defaultValue: true,
+                 description: 'Generate a Gravity App tarball'),
+    booleanParam(name: 'BUILD_GRAVITY_HELM_APP',
+                 defaultValue: false,
+                 description: 'Generate a Gravity Helm App tarball'),
   ]),
 ])
 
-timestamps {
-  node {
+node {
+  workspace {
     stage('checkout') {
-      checkout scm
+      print 'Running stage Checkout source'
+
+      def branches
+      if (params.TAG == '') { // No tag specified
+        branches = scm.branches
+      } else {
+        branches = [[name: "refs/tags/${params.TAG}"]]
+      }
+
+      checkout([
+        $class: 'GitSCM',
+        branches: branches,
+        doGenerateSubmoduleConfigurations: scm.doGenerateSubmoduleConfigurations,
+        extensions: [[$class: 'CloneOption', noTags: false, shallow: false]],
+        submoduleCfg: [],
+        userRemoteConfigs: scm.userRemoteConfigs,
+      ])
     }
     stage('params') {
       echo "${params}"
@@ -66,53 +101,71 @@ timestamps {
     stage('clean') {
       sh "make clean"
     }
-    stage('download gravity/tele binaries for login') {
-      sh "make download-binaries"
-    }
 
     APP_VERSION = sh(script: 'make what-version', returnStdout: true).trim()
+    APP_VERSION = params.ADD_GRAVITY_VERSION ? "${APP_VERSION}-${GRAVITY_VERSION}" : APP_VERSION
+    STATEDIR = "${pwd()}/state/${APP_VERSION}"
+    BINARIES_DIR = "${pwd()}/bin"
+    MAKE_ENV = [
+      "STATEDIR=${STATEDIR}",
+      "PATH+GRAVITY=${BINARIES_DIR}",
+      "VERSION=${APP_VERSION}"
+    ]
+
+    stage('download gravity/tele binaries') {
+      withEnv(MAKE_ENV + ["BINARIES_DIR=${BINARIES_DIR}"]) {
+        sh 'make download-binaries'
+      }
+    }
+
+    stage('populate state directory with gravity and cluster-ssl packages') {
+      if (!params.BUILD_GRAVITY_HELM_APP) {
+        withEnv(MAKE_ENV + ["BINARIES_DIR=${BINARIES_DIR}"]) {
+          sh 'make install-dependent-packages'
+        }
+      } else {
+        echo 'Helm chart application is built without state. Stage skipped.'
+      }
+    }
 
     stage('build-app') {
-      withCredentials([
-      [$class: 'StringBinding', credentialsId:'CI_OPS_API_KEY', variable: 'API_KEY'],
-      ]) {
-        def TELE_STATE_DIR = "${pwd()}/state/${APP_VERSION}"
-        sh """
-export PATH=\$(pwd)/bin:\${PATH}
-rm -rf ${TELE_STATE_DIR} && mkdir -p ${TELE_STATE_DIR}
-export EXTRA_GRAVITY_OPTIONS="--state-dir=${TELE_STATE_DIR}"
-tele logout \${EXTRA_GRAVITY_OPTIONS}
-tele login \${EXTRA_GRAVITY_OPTIONS} -o ${OPS_URL} --token=${API_KEY}
-make build-app OPS_URL=$OPS_URL"""
+      if (params.BUILD_CLUSTER_IMAGE) {
+        withEnv(MAKE_ENV) {
+          sh 'make build-app'
+        }
+      } else {
+        echo 'skipped build of gravity cluster image'
+      }
+    }
+
+    stage('build gravity helm app') {
+      if (params.BUILD_GRAVITY_HELM_APP) {
+        withEnv(MAKE_ENV) {
+          sh 'make build-gravity-app'
+          archiveArtifacts "build/helm-application.tar"
+        }
+      } else {
+        echo 'skipped build gravity helm app'
+      }
+    }
+
+    stage('build gravity app') {
+      if (params.BUILD_GRAVITY_APP) {
+        withEnv(MAKE_ENV) {
+          sh 'make export'
+          archiveArtifacts "build/application.tar"
+        }
+      } else {
+        echo 'skipped build gravity app'
       }
     }
   }
-  throttle(['robotest']) {
-    node {
-      stage('test') {
-        parallel (
-        robotest : {
-          if (params.RUN_ROBOTEST == 'run') {
-            withCredentials([
-                [$class: 'FileBinding', credentialsId:'ROBOTEST_LOG_GOOGLE_APPLICATION_CREDENTIALS', variable: 'GOOGLE_APPLICATION_CREDENTIALS'],
-                [$class: 'StringBinding', credentialsId:'CI_OPS_API_KEY', variable: 'API_KEY'],
-                [$class: 'FileBinding', credentialsId:'OPS_SSH_KEY', variable: 'SSH_KEY'],
-                [$class: 'FileBinding', credentialsId:'OPS_SSH_PUB', variable: 'SSH_PUB'],
-                ]) {
-                  def TELE_STATE_DIR = "${pwd()}/state/${APP_VERSION}"
-                  sh """
-                  export PATH=\$(pwd)/bin:\${PATH}
-                  export EXTRA_GRAVITY_OPTIONS="--state-dir=${TELE_STATE_DIR}"
-                  make robotest-run-suite \
-                    AWS_KEYPAIR=ops \
-                    AWS_REGION=us-east-1 \
-                    ROBOTEST_VERSION=$ROBOTEST_VERSION"""
-            }
-          }else {
-            echo 'skipped system tests'
-          }
-        } )
-      }
+}
+
+void workspace(Closure body) {
+  timestamps {
+    ws("${pwd()}-${BUILD_ID}") {
+      body()
     }
   }
 }

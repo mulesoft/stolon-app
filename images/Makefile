@@ -1,4 +1,4 @@
-GOLANGCI_LINT_VER ?= 1.19.0
+GOLANGCI_LINT_VER ?= 1.30.0
 
 .PHONY: all
 all: images
@@ -60,7 +60,7 @@ $(IMAGES_FOR_BUILD):
 
 .PHONY: hook
 hook:
-	$(eval CHANGESET = $(shell echo $$VERSION | sed -e 's/[\.]//g'))
+	$(eval CHANGESET = $(shell echo '$(VERSION)' | sed -e 's/[\.]//g'))
 	if [ -z "$(CHANGESET)" ]; then \
 		echo "CHANGESET is not set"; exit 1; \
 	fi;
@@ -78,4 +78,3 @@ publish-stolonctl: stolonctl
 clean:
 	-rm -rf $(STOLONBOOT_BINS)
 	-rm -rf $(STOLONCTL_BINS)
-	-rm -rf $(STOLON_BINS)

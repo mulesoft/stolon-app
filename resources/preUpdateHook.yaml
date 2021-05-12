@@ -2,7 +2,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: stolon-app-post-update
+  name: stolon-app-pre-update-hook
   namespace: default
 spec:
   parallelism: 1
@@ -10,17 +10,15 @@ spec:
   activeDeadlineSeconds: 600
   template:
     metadata:
-      name: stolon-app-post-update
+      name: stolon-app-pre-update-hook
     spec:
-      securityContext:
-        runAsUser: 0
       nodeSelector:
         gravitational.io/k8s-role: master
       restartPolicy: OnFailure
       containers:
-        - name: post-update
+        - name: pre-update-hook
           image: stolonctl:latest
-          command: ["/usr/bin/stolonctl", "status", "--short"]
+          command: ["/usr/bin/pre-update.sh"]
           env:
             - name: ETCD_CACERT
               value: "/etc/etcd/secrets/root.cert"
